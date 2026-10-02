@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wargame Infrastructure Editor - r20b Road Map Export Name</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1e1e1e; color: #e0e0e0; display: flex; height: 100vh; user-select: none; }
+        #sidebar { width: 320px; background: #252526; border-right: 1px solid #3e3e42; display: flex; flex-direction: column; overflow-y: auto; z-index: 20; }
+        .panel { padding: 15px; border-bottom: 1px solid #3e3e42; }
+        .panel h3 { margin: 0 0 10px 0; color: #007acc; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+        .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .btn { padding: 8px; background: #333; border: 1px solid #555; color: #ddd; cursor: pointer; border-radius: 4px; font-size: 11px; text-align: center; transition: all 0.2s; }
+        .btn:hover { background: #444; border-color: #007acc; }
+        .btn.active { background: #007acc; border-color: #005a9e; color: white; }
+        .btn-full { grid-column: span 2; }
+        .btn-danger { background: #402020; border-color: #603030; }
+        .btn-danger:hover { background: #603030; }
+        .btn-success { background: #204020; border-color: #306030; }
+        .btn-success:hover { background: #306030; }
+        .btn-warning { background: #403020; border-color: #603030; }
+        .btn-warning:hover { background: #604030; }
+        .input-group { margin-bottom: 8px; }
+        .input-group label { display: block; font-size: 11px; color: #aaa; margin-bottom: 3px; }
+        .input-group select, .input-group input { width: 100%; padding: 5px; background: #3c3c3c; border: 1px solid #555; color: #fff; border-radius: 3px; box-sizing: border-box; font-size: 12px; }
+        .check-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+        .check-row input { width: auto !important; }
+        .check-row label { margin: 0 !important; color: #cfd8dc; }
+        .tmpl-select { margin-bottom: 6px; }
+        .cat-toggle { width: 100%; margin-bottom: 4px; font-weight: bold; letter-spacing: .5px; }
+        .cat-hint { font-size: 9px; color: #6f6f6f; margin: 2px 0 4px; }
+        .ctx-menu { margin-top: 12px; border-top: 1px solid #3e3e42; padding: 10px; background: #1f1f20; border-radius: 6px; }
+        .ctx-title { font-size: 11px; color: #007acc; font-weight: bold; display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        #canvas-container { flex: 1; position: relative; background: #1a1a1a; }
+        canvas { display: block; cursor: crosshair; }
+        #topbar { position: absolute; top: 10px; left: 10px; background: rgba(30,30,30,0.9); padding: 8px 15px; border-radius: 4px; font-size: 12px; display: flex; gap: 20px; border: 1px solid #3e3e42; z-index: 10; pointer-events: none;}
+        #topbar span { color: #007acc; font-weight: bold; }
+        #chain-ui { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(30,30,30,0.95); padding: 10px 20px; border-radius: 8px; display: none; gap: 15px; align-items: center; border: 1px solid #007acc; z-index: 10; }
+        #chain-ui button { padding: 8px 16px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; border-radius: 4px; }
+        .btn-ui-confirm { background: #204020; color: white; }
+        .btn-ui-cancel { background: #402020; color: white; }
+        #tmpl-ctx { display: none; position: fixed; z-index: 60; background: #1f1f20; border: 1px solid #007acc; border-radius: 6px; padding: 4px 0; min-width: 168px; box-shadow: 0 8px 22px rgba(0,0,0,.65); }
+        #tmpl-ctx .ctx-item { padding: 7px 14px; font-size: 12px; color: #ddd; cursor: pointer; }
+        #tmpl-ctx .ctx-item:hover { background: #007acc; color: #fff; }
+        #tmpl-ctx .ctx-del { color: #ff8a8a; }
+        #tmpl-ctx .ctx-del:hover { background: #603030; color: #fff; }
+        #tmpl-ctx .ctx-sep { height: 1px; background: #3e3e42; margin: 4px 0; }
+        #tmpl-ctx .ctx-head { padding: 5px 14px 3px; font-size: 9px; color: #6f6f6f; text-transform: uppercase; letter-spacing: 1px; }
+        #edge-ctx { display: none; position: fixed; z-index: 61; background: #1f1f20; border: 1px solid #007acc; border-radius: 6px; padding: 4px 0; min-width: 210px; box-shadow: 0 8px 22px rgba(0,0,0,.65); }
+        #edge-ctx .ctx-item { padding: 7px 14px; font-size: 12px; color: #ddd; cursor: pointer; }
+        #edge-ctx .ctx-item:hover { background: #007acc; color: #fff; }
+        #edge-ctx .ctx-del { color: #ff8a8a; }
+        #edge-ctx .ctx-del:hover { background: #603030; color: #fff; }
+        #edge-ctx .ctx-sep { height: 1px; background: #3e3e42; margin: 4px 0; }
+        #edge-ctx .ctx-head { padding: 5px 14px 3px; font-size: 9px; color: #6f6f6f; text-transform: uppercase; letter-spacing: 1px; }
+        .seg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+        .seg .btn { padding: 6px 4px; font-size: 10px; }
+        #storage-status { margin-top: 8px; font-size: 10px; color: #7fd4e8; min-height: 13px; line-height: 1.3; }
+        .storage-hint { font-size: 9px; color: #777; line-height: 1.35; margin-top: 8px; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="panel">
+        <h3>Drawing Tools</h3>
+        <div class="tool-grid">
+            <div class="btn active" id="tool-chain" onclick="setTool('chain')">Point Chain</div>
+            <div class="btn" id="tool-freehand" onclick="setTool('freehand')">Freehand</div>
+            <div class="btn" id="tool-ruler" onclick="setTool('ruler')">Ruler (Shift=Snap)</div>
+            <div class="btn" id="tool-select" onclick="setTool('select')">Select / Edit</div>
+            <div class="btn btn-warning" id="tool-eraser" onclick="setTool('eraser')">Eraser</div>
+        </div>
+        <div style="font-size: 10px; color: #888; margin-top: 8px; padding: 5px; background: #1a1a1a; border-radius: 3px;">
+            <b>Ruler:</b> Hold SHIFT to snap to 45° angles.<br>
+            <b>Pan:</b> Middle-drag (or Shift+left) grabs the map and pulls it with you.<br>
+            <b>Select / Edit:</b> the editing tool. Three grab modes:<br>
+            • <b>⬚ Whole template</b> — drag a placed template (snaps + auto‑rotates to nearby roads like placing one).<br>
+            • <b>● Single node</b> — edit one joint; drag near another node/road and, on release, it <b>welds topologically</b> (shared node / split road) when Auto‑align is on.<br>
+            • <b>⛓ Connected</b> — click a joint to grab its <b>entire connected network</b> (roads + welded templates move together).<br>
+            <b>SHIFT‑click</b> adds/removes nodes; <b>drag empty space</b> rubber‑band‑selects; <b>SHIFT‑drag</b> pans. <b>Right‑click</b> a template → Edit / Move / Duplicate / Delete. <b>Right‑click</b> a rail/metro segment → Surface Railway / Underground Metro / Delete. <b>ALT</b> cycles grab modes temporarily.<br>
+            <b>Welding:</b> on release after a real drag, snapped geometry is merged for real (undoable). Uncheck Auto‑align for positional‑only nudges.<br>
+            <b>Snap:</b> cyan ticks ride the curve (draw/attach only). Mid-road snaps split the road, preserving its shape.<br>
+            <b>Eraser:</b> Hover to highlight red, click to delete.
+        </div>
+        <div id="eraser-options" class="ctx-menu" style="display:none;">
+            <span class="ctx-title">Eraser Mode</span>
+            <div class="input-group">
+                <label>What to delete on click</label>
+                <select id="eraser-mode">
+                    <option value="node" selected>Point + connected roads</option>
+                    <option value="segment">Single segment (keep nodes)</option>
+                    <option value="cluster">Whole connected network</option>
+                    <option value="area">Area (radius around click)</option>
+                </select>
+            </div>
+            <div style="font-size:9px;color:#777;line-height:1.3;">Area mode shows a red circle preview. Segment mode keeps junction nodes so you can rebuild.</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Templates</h3>
+
+        <div class="input-group tmpl-select">
+            <button class="btn cat-toggle" id="cat-road" onclick="toggleTemplateCat('road')">Roads &amp; At-Grade  ○OFF</button>
+            <div class="cat-hint">Pick below, then press the button to arm the ghost on the map.</div>
+            <select id="tmpl-road" onchange="onTemplateSelect(this)">
+                <option value="">— Select a road template —</option>
+                <option value="square-intersection">Square Cross</option>
+                <option value="roundabout">Roundabout</option>
+                <option value="mini-roundabout">Mini-Roundabout</option>
+                <option value="y-junction">Y-Junction</option>
+                <option value="t-junction">T-Junction</option>
+                <option value="layby">Layby Bay</option>
+                <option value="bottleneck">Bottleneck (Lane Drop)</option>
+            </select>
+        </div>
+        <div class="input-group tmpl-select">
+            <button class="btn cat-toggle" id="cat-bridge" onclick="toggleTemplateCat('bridge')">Bridges &amp; Ramps  ○OFF</button>
+            <div class="cat-hint">Arming this turns off Roads/Rail and all drawing tools.</div>
+            <select id="tmpl-bridge" onchange="onTemplateSelect(this)">
+                <option value="">— Select a bridge/ramp template —</option>
+                <option value="straight-ramp">Straight Ramp</option>
+                <option value="curved-ramp">Curved Ramp</option>
+                <option value="exit-ramp">Exit Ramp (Y-Split)</option>
+                <option value="cloverleaf-ramp">Cloverleaf Ramp</option>
+                <option value="diamond">Diamond Interchange</option>
+                <option value="loop">Loop Ramp</option>
+                <option value="outer-connection">Outer Connection (Flyover)</option>
+                <option value="directional">Directional Interchange (DDI)</option>
+                <option value="semi-directional">Semi-Directional</option>
+                <option value="single-lane-taper">Single-Lane Taper</option>
+                <option value="single-lane-parallel">Single-Lane Parallel</option>
+                <option value="two-lane-optional">Two-Lane Optional</option>
+                <option value="two-lane-lane-drop">Two-Lane Lane Drop</option>
+                <option value="bridge-exit">Bridge Exit (Down-Ramp)</option>
+                <option value="bridge-merge">Bridge Merge (Up-Ramp)</option>
+            </select>
+        </div>
+        <div class="input-group tmpl-select">
+            <button class="btn cat-toggle" id="cat-rail" onclick="toggleTemplateCat('rail')">Rail · Tunnel · Metro  ○OFF</button>
+            <div class="cat-hint">Arming this turns off Roads/Bridges and all drawing tools.</div>
+            <select id="tmpl-rail" onchange="onTemplateSelect(this)">
+                <option value="">— Select a rail/tunnel template —</option>
+                <option value="rail-crossing">Rail Crossing (At-Grade)</option>
+                <option value="rail-flying">Flying Junction (Grade-Sep.)</option>
+                <option value="metro-station">Metro Station (Underground)</option>
+                <option value="tunnel-portal">Tunnel Portal (Descend)</option>
+            </select>
+        </div>
+
+        <div id="template-settings" class="ctx-menu" style="display:none;">
+            <span class="ctx-title">Template Settings</span>
+            <div class="check-row">
+                <input type="checkbox" id="auto-align" checked>
+                <label for="auto-align">Auto-align &amp; merge (weld on release)</label>
+            </div>
+            <div class="input-group"><label>Size Multiplier</label><input type="number" id="tmpl-size" value="1" step="0.1" min="0.5" max="3" oninput="updateTemplatePreview()"></div>
+            <div class="input-group"><label>Number of Lanes</label><input type="number" id="tmpl-lanes" value="2" min="1" max="8" oninput="updateTemplatePreview()"></div>
+            <div class="input-group" id="tmpl-arms-group"><label>Number of Arms/Exits</label><input type="number" id="tmpl-arms" value="4" min="3" max="8" oninput="updateTemplatePreview()"></div>
+            <div class="input-group"><label>Rotation (degrees, offset)</label><input type="number" id="tmpl-rotation" value="0" step="15" min="0" max="360" oninput="updateTemplatePreview()"></div>
+            <div style="font-size:9px;color:#777;line-height:1.3;">Underground rails/metros render in a cool cyan-on-navy trench palette (distinct from surface railway) and carry a cyan Z=−…m depth label; bridges keep the white Z=+…m label.</div>
+        </div>
+    </div>
+
+    <div class="panel" id="selection-panel">
+        <h3>Edit Placed Template</h3>
+        <div class="seg">
+            <div class="btn active" id="grab-group" onclick="setGrabMode('group')">⬚ Whole template</div>
+            <div class="btn" id="grab-node" onclick="setGrabMode('node')">● Single node</div>
+            <div class="btn" id="grab-network" onclick="setGrabMode('network')">⛓ Connected</div>
+        </div>
+        <div id="sel-empty" style="font-size:10px;color:#9a9a9a;line-height:1.45;">
+            Nothing selected. Switch to <b style="color:#007acc;">Select / Edit</b>, then:<br>
+            • <b>⬚ Whole template</b>: <b>click</b> a placed template to grab it (drag = move + snap/auto‑rotate; release <b>welds</b> to nearby roads when Auto‑align is on).<br>
+            • <b>● Single node</b>: <b>drag</b> a joint — cyan ring shows the snap target; on release it topologically merges (shared node, or splits the road it touched).<br>
+            • <b>⛓ Connected</b>: <b>click</b> a joint to grab its whole connected network (roads + welded templates move together).<br>
+            • <b>SHIFT‑click</b> adds/removes nodes; <b>drag empty space</b> rubber‑band‑selects; <b>SHIFT‑drag</b> pans. <b>Right‑click</b> a template → Edit / Move / Duplicate / Delete. <b>Right‑click</b> a rail/metro segment → convert surface/underground. <b>ALT</b> cycles grab modes.<br>
+            <span style="color:#6f6f6f;">Welds are undoable (one Undo per release batch).</span>
+        </div>
+        <div id="sel-body" style="display:none;">
+            <span class="ctx-title" id="sel-title">—</span>
+            <div class="input-group"><label>Number of Lanes</label><input type="number" id="sel-lanes" min="1" max="8" oninput="selEditLanes()"></div>
+            <div class="input-group"><label>Lane Width (m)</label><input type="number" id="sel-lanewidth" step="0.1" min="2" max="6" oninput="selEditLaneWidth()"></div>
+            <div class="input-group"><label>Shoulder (m)</label><input type="number" id="sel-shoulder" step="0.5" min="0" max="6" oninput="selEditShoulder()"></div>
+            <div class="input-group"><label>Size Multiplier (scales whole template, island-safe)</label><input type="number" id="sel-size" step="0.1" min="0.4" max="4" oninput="selEditSize()"></div>
+            <div class="input-group"><label>Rotation (degrees, absolute)</label><input type="number" id="sel-rotation" step="15" min="0" max="360" oninput="selEditRotation()"></div>
+            <div style="font-size:9px;color:#777;line-height:1.3;margin-bottom:8px;">Drag the template on the map to move it (snaps + auto‑rotates to nearby roads; release welds when Auto‑align is on). Switch the toggle to <b>Single node</b> to nudge individual joints, or <b>Connected</b> to move the whole attached network. Lanes/width/shoulder edit in place (keeps welds &amp; splits). On a roundabout, raising <i>Lanes</i> widens the band from a fixed ring line so the island can shrink — use <i>Size</i> to fatten it proportionally instead.</div>
+            <div class="tool-grid">
+                <div class="btn" onclick="selDeselect()">Deselect</div>
+                <div class="btn btn-danger" onclick="selDelete()">Delete Template</div>
+            </div>
+        </div>
+        <div id="sel-nodes" style="display:none;">
+            <span class="ctx-title" id="sel-nodes-count">0 nodes selected</span>
+            <div style="font-size:10px;color:#9a9a9a;line-height:1.45;margin-bottom:8px;">
+                <b>Press &amp; hold on any highlighted node, then drag</b> to move the whole set together. On release, snapped nodes <b>weld topologically</b> (shared node / split road) when Auto‑align is on. <b>SHIFT‑click</b> adds/removes joints; <b>drag empty space</b> rubber‑band‑selects; <b>⛓ Connected</b> grabs the entire attached network.
+            </div>
+            <div class="tool-grid">
+                <div class="btn" onclick="selDeselect()">Deselect</div>
+                <div class="btn btn-danger" onclick="selDeleteNodes()">Delete Nodes</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Infrastructure &amp; Surface</h3>
+        <div class="input-group">
+            <label>System Type</label>
+            <select id="infra-type" onchange="updateStandards()">
+                <option value="road">Local Road</option>
+                <option value="highway">Highway / Arterial</option>
+                <option value="bridge">Bridge (Elevated)</option>
+                <option value="tunnel">Tunnel (Sunken)</option>
+                <option value="rail">Railway</option>
+                <option value="metro">Underground Metro</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Surface Material</label>
+            <select id="surface-type">
+                <option value="asphalt">Asphalt</option>
+                <option value="dirt">Dirt</option>
+                <option value="gravel">Gravel</option>
+                <option value="concrete">Concrete</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Dimensions &amp; Elevation</h3>
+        <div class="input-group"><label>Elevation Z (meters)</label><input type="number" id="elevation-z" value="0" step="1"></div>
+        <div class="input-group"><label>Lane Width (m, standard)</label><input type="number" id="lane-width" value="3.5" step="0.1" oninput="syncWidthFromLanes()"></div>
+        <div class="input-group"><label>Number of Lanes</label><input type="number" id="num-lanes" value="2" min="1" max="8" oninput="syncWidthFromLanes()"></div>
+        <div class="input-group"><label>Shoulder (m)</label><input type="number" id="shoulder" value="1.5" step="0.5" oninput="syncWidthFromLanes()"></div>
+        <div class="input-group"><label>Road Width (m) — editable, snaps lanes to standard</label><input type="number" id="road-width" value="10.0" step="0.5" min="3" oninput="syncLanesFromWidth()"></div>
+    </div>
+
+    <div class="panel">
+        <h3>Map Files</h3>
+
+        <div class="input-group">
+            <label>Save name</label>
+            <input type="text" id="save-name" value="Road Map" maxlength="80" placeholder="e.g. City North, Rail Test, Version 1">
+        </div>
+
+        <div class="input-group">
+            <label>Saved maps (stored in this browser)</label>
+            <select id="saved-map-list">
+                <option value="">— No saved maps —</option>
+            </select>
+        </div>
+
+        <div class="tool-grid">
+            <div class="btn btn-success" onclick="saveNamedMap()" title="Save current map locally under the name above">💾 Save Map</div>
+            <div class="btn" onclick="loadSelectedMap()" title="Load selected saved map from this browser">📂 Load Save</div>
+            <div class="btn" onclick="importMapClick()" title="Import a .json map file">📥 Import JSON</div>
+            <div class="btn" onclick="exportMap()" title="Export current map as a .json file">📤 Export JSON</div>
+            <div class="btn btn-danger" onclick="deleteSelectedMap()" title="Delete selected local saved map">🗑 Delete Save</div>
+            <div class="btn" onclick="refreshSavedMapList(true)" title="Refresh local saved map list">↻ Refresh</div>
+        </div>
+
+        <div id="storage-status">Ready.</div>
+        <div class="storage-hint">
+            <b>Save Map</b> stores the current map inside this browser using the name above. You can reload it later from the dropdown without opening a JSON file.<br>
+            <b>Import / Export JSON</b> are for portable files.<br>
+            <b>Reset Canvas</b> clears the current canvas only; it does not delete saved maps.<br>
+            <b>Export filename</b> defaults to <code>road-map.json</code>. If you name the map, it exports as <code>road-map-Name.json</code>.
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Management</h3>
+        <div class="tool-grid">
+            <div class="btn btn-success" onclick="undoAction()">Undo</div>
+            <div class="btn btn-danger" onclick="clearAll()">Reset Canvas</div>
+            <div class="btn" onclick="clearType('road')">Clear Roads</div>
+            <div class="btn" onclick="clearType('rail')">Clear Rail</div>
+        </div>
+    </div>
+</div>
+
+<div id="canvas-container">
+    <canvas id="gameCanvas"></canvas>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none;">
+    <div id="tmpl-ctx">
+        <div class="ctx-head" id="ctx-head">Template</div>
+        <div class="ctx-item" onclick="ctxAct('edit')">✎ Edit / Select</div>
+        <div class="ctx-item" onclick="ctxAct('move')">✥ Move (then drag)</div>
+        <div class="ctx-item" onclick="ctxAct('dup')">⧉ Duplicate</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item ctx-del" onclick="ctxAct('del')">🗑 Delete Template</div>
+    </div>
+    <div id="edge-ctx">
+        <div class="ctx-head" id="edge-ctx-head">Rail segment</div>
+        <div class="ctx-item" onclick="edgeCtxAct('surface')">▭ Make Surface Railway</div>
+        <div class="ctx-item" onclick="edgeCtxAct('metro')">◍ Make Underground Metro</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item" onclick="edgeCtxAct('depthDown')">⬇ Lower segment 5m</div>
+        <div class="ctx-item" onclick="edgeCtxAct('depthUp')">⬆ Raise segment 5m</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item ctx-del" onclick="edgeCtxAct('del')">🗑 Delete Segment</div>
+    </div>
+    <div id="topbar">
+        <div>Build: <span id="build-tag" style="color:#39d353;">?</span></div>
+        <div>Coords: X: <span id="coord-x">0</span> Y: <span id="coord-y">0</span></div>
+        <div id="curvature-display" style="display: none; color: #ffaa00;">Curve: <span id="curvature-val">0</span>%</div>
+        <div id="template-hint" style="display: none; color: #00ff00;">Click to Place (snaps &amp; aligns; mid-road snaps split the road)</div>
+    </div>
+    <div id="chain-ui">
+        <span style="color: #fff;">Chain Active</span>
+        <button class="btn-ui-confirm" onclick="confirmChain()">Finish (Right-Click)</button>
+        <button class="btn-ui-cancel" onclick="cancelChain()">Cancel (Esc)</button>
+    </div>
+</div>
+
+<script>
+    const BUILD = 'r20b-road-map-export-name';
+
+    const LEGACY_STORAGE_KEY = 'wargame_infrastructure_editor_r19_map';
+    const SAVES_INDEX_KEY = 'wargame_infrastructure_editor_r20_save_index';
+    const SAVE_PREFIX = 'wargame_infrastructure_editor_r20_map:';
+    const LAST_SAVE_KEY = 'wargame_infrastructure_editor_r20_last_save';
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+    const chainUI = document.getElementById('chain-ui');
+    const curvatureDisplay = document.getElementById('curvature-display');
+    const curvatureVal = document.getElementById('curvature-val');
+    const templateHint = document.getElementById('template-hint');
+    const tmplArmsGroup = document.getElementById('tmpl-arms-group');
+    const templateSettingsEl = document.getElementById('template-settings');
+    const eraserOptionsEl = document.getElementById('eraser-options');
+    const eraserModeEl = document.getElementById('eraser-mode');
+    const selEmptyEl = document.getElementById('sel-empty');
+    const selBodyEl = document.getElementById('sel-body');
+    const selTitleEl = document.getElementById('sel-title');
+    const selNodesEl = document.getElementById('sel-nodes');
+    const selNodesCountEl = document.getElementById('sel-nodes-count');
+    const ctxMenuEl = document.getElementById('tmpl-ctx');
+    const ctxHeadEl = document.getElementById('ctx-head');
+    const edgeMenuEl = document.getElementById('edge-ctx');
+    const edgeHeadEl = document.getElementById('edge-ctx-head');
+    const importFileEl = document.getElementById('import-file');
+
+    const saveNameEl = document.getElementById('save-name');
+    const savedMapListEl = document.getElementById('saved-map-list');
+    const storageStatusEl = document.getElementById('storage-status');
+
+    const AREA_ERASE_RADIUS = 50;
+    const CAT_LABEL = { road: 'Roads & At-Grade', bridge: 'Bridges & Ramps', rail: 'Rail · Tunnel · Metro' };
+    const TYPE_NAME = {
+        'square-intersection':'Square Cross','roundabout':'Roundabout','mini-roundabout':'Mini-Roundabout','y-junction':'Y-Junction','t-junction':'T-Junction','layby':'Layby Bay','bottleneck':'Bottleneck',
+        'straight-ramp':'Straight Ramp','curved-ramp':'Curved Ramp','exit-ramp':'Exit Ramp','cloverleaf-ramp':'Cloverleaf Ramp','diamond':'Diamond Interchange','loop':'Loop Ramp','outer-connection':'Outer Connection','directional':'Directional (DDI)','semi-directional':'Semi-Directional','single-lane-taper':'Single-Lane Taper','single-lane-parallel':'Single-Lane Parallel','two-lane-optional':'Two-Lane Optional','two-lane-lane-drop':'Two-Lane Lane Drop','bridge-exit':'Bridge Exit','bridge-merge':'Bridge Merge',
+        'rail-crossing':'Rail Crossing','rail-flying':'Flying Junction','metro-station':'Metro Station','tunnel-portal':'Tunnel Portal'
+    };
+
+    const FACE_LOCAL = {
+        'square-intersection': 0, 'roundabout': 0, 'mini-roundabout': 0,
+        'y-junction': -90, 't-junction': 0, 'layby': 0, 'bottleneck': 0,
+        'straight-ramp': 0, 'curved-ramp': 0, 'exit-ramp': 0, 'cloverleaf-ramp': 0,
+        'diamond': 0, 'loop': 0, 'outer-connection': 0, 'directional': 0, 'semi-directional': 0,
+        'single-lane-taper': 0, 'single-lane-parallel': 0, 'two-lane-optional': 0, 'two-lane-lane-drop': 0,
+        'bridge-exit': 0, 'bridge-merge': 0,
+        'rail-crossing': 0, 'rail-flying': 0, 'metro-station': 0, 'tunnel-portal': 0
+    };
+    const ARMS_TYPES = new Set(['roundabout','mini-roundabout','y-junction','exit-ramp']);
+    const GRAB_CYCLE = { group: 'node', node: 'network', network: 'group' };
+
+    let width, height;
+    let camera = { x: 0, y: 0, zoom: 1 };
+    let nodes = [], edges = [], nextId = 1, undoStack = [];
+    let groups = new Map();
+    let nextGroupId = 1;
+    let selKind = null, selGroup = null, selNode = null;
+    let selNodes = new Set();
+    let marquee = null;
+    let marqueeActive = false;
+    let downPos = null;
+    let panPending = null;
+    let grabMode = 'group';
+    let dragAnchorNode = null;
+    let lastGroupSnap = null;
+    let geometryDragged = false;
+    let suppressUndo = false;
+    let hoveredGroup = null;
+    let ctxGid = null;
+    let ctxEdgeId = null;
+    let dragPrev = null;
+    let currentTool = 'chain';
+    let activeTemplateCat = null;
+    let pendingTemplate = null;
+    let mouseWorld = { x: 0, y: 0 };
+    let isShiftDown = false;
+    let chainPoints = [], segmentCurves = [], currentSegmentCurve = 0;
+    let isPanning = false, isDragging = false;
+    let selectedNode = null, hoveredEraserTarget = null, previewChain = [];
+    let lastMouse = { x: 0, y: 0 };
+    let snapPoint = null;
+    let _syncing = false;
+    let currentMapName = null;
+    const SNAP_THRESHOLD = 15;
+
+    function resize() { width = container.clientWidth; height = container.clientHeight; canvas.width = width; canvas.height = height; render(); }
+    window.addEventListener('resize', resize);
+    function screenToWorld(sx, sy) { return { x: (sx - width / 2) / camera.zoom + camera.x, y: (sy - height / 2) / camera.zoom + camera.y }; }
+
+    function getSettings() {
+        return {
+            type: document.getElementById('infra-type').value,
+            surface: document.getElementById('surface-type').value,
+            laneWidth: parseFloat(document.getElementById('lane-width').value) || 3.5,
+            lanes: parseInt(document.getElementById('num-lanes').value) || 2,
+            shoulder: parseFloat(document.getElementById('shoulder').value) || 1.5,
+            z: parseFloat(document.getElementById('elevation-z').value) || 0,
+        };
+    }
+    function updateStandards() {
+        const type = document.getElementById('infra-type').value;
+        const zInput = document.getElementById('elevation-z');
+        if (type === 'bridge') zInput.value = 5;
+        else if (type === 'tunnel' || type === 'metro') zInput.value = -5;
+        else zInput.value = 0;
+    }
+
+    function stdWidth() { const lw = parseFloat(document.getElementById('lane-width').value) || 3.5; const ln = parseInt(document.getElementById('num-lanes').value) || 1; const sh = parseFloat(document.getElementById('shoulder').value) || 0; return ln * lw + 2 * sh; }
+    function syncWidthFromLanes() { if (_syncing) return; _syncing = true; document.getElementById('road-width').value = stdWidth().toFixed(1); _syncing = false; }
+    function syncLanesFromWidth() {
+        if (_syncing) return; _syncing = true;
+        const W = parseFloat(document.getElementById('road-width').value) || 0;
+        const lw = parseFloat(document.getElementById('lane-width').value) || 3.5;
+        const sh = parseFloat(document.getElementById('shoulder').value) || 0;
+        let ln = Math.round((W - 2 * sh) / lw); ln = Math.max(1, Math.min(8, ln));
+        document.getElementById('num-lanes').value = ln;
+        document.getElementById('road-width').value = (ln * lw + 2 * sh).toFixed(1);
+        _syncing = false;
+    }
+
+    function addNode(x, y, z) { const node = { id: nextId++, x, y, z: z }; nodes.push(node); return node; }
+    function addEdge(fromNode, toNode, settings, curvature = 0) {
+        const totalWidth = (settings.laneWidth * settings.lanes) + (settings.shoulder * 2);
+        const edge = { id: nextId++, from: fromNode.id, to: toNode.id, type: settings.type, surface: settings.surface, width: totalWidth, lanes: settings.lanes, laneWidth: settings.laneWidth, shoulder: settings.shoulder, curvature: curvature };
+        edges.push(edge); undoStack.push({ action: 'add', type: 'edge', data: edge }); return edge;
+    }
+    function findNearestNode(x, y, threshold) {
+        let closest = null, minDist = threshold;
+        for (let node of nodes) { const dist = Math.hypot(node.x - x, node.y - y); if (dist < minDist) { minDist = dist; closest = node; } }
+        return closest;
+    }
+    function findNearestEdge(x, y, threshold) {
+        let closest = null, minDist = threshold;
+        for (let edge of edges) {
+            const fromNode = nodes.find(n => n.id === edge.from), toNode = nodes.find(n => n.id === edge.to);
+            if (!fromNode || !toNode) continue;
+            const dx = toNode.x - fromNode.x, dy = toNode.y - fromNode.y, len = Math.hypot(dx, dy);
+            if (len === 0) continue;
+            const t = Math.max(0, Math.min(1, ((x - fromNode.x) * dx + (y - fromNode.y) * dy) / (len * len)));
+            const dist = Math.hypot(x - (fromNode.x + t * dx), y - (fromNode.y + t * dy));
+            const hitRadius = currentTool === 'eraser' ? (edge.width/2 + 10) : (edge.width/2 + threshold);
+            if (dist < hitRadius && dist < minDist) { minDist = dist; closest = edge; }
+        }
+        return closest;
+    }
+
+    function edgeCtrl(e) {
+        const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+        if (!a || !b) return { x: 0, y: 0 };
+        if (e.cx !== undefined && e.cy !== undefined) return { x: e.cx, y: e.cy };
+        const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+        const px = -dy / len, py = dx / len, off = (e.curvature || 0) * len * 1.2;
+        return { x: midX + px * off, y: midY + py * off };
+    }
+    function quadAt(a, c, b, t) { const mt = 1 - t; return { x: mt * mt * a.x + 2 * mt * t * c.x + t * t * b.x, y: mt * mt * a.y + 2 * mt * t * c.y + t * t * b.y }; }
+    function quadTangent(a, c, b, t) { const mt = 1 - t; return { x: 2 * mt * (c.x - a.x) + 2 * t * (b.x - c.x), y: 2 * mt * (c.y - a.y) + 2 * t * (b.y - c.y) }; }
+
+    function edgeDirUnit(edge) {
+        const a = nodes.find(n => n.id === edge.from), b = nodes.find(n => n.id === edge.to);
+        if (!a || !b) return null; const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+        return { x: dx / l, y: dy / l, a, b };
+    }
+    function nearestEdgeAt(x, y, thr) {
+        let best = null, bd = thr;
+        for (const e of edges) {
+            if (e.ring) continue;
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to); if (!a || !b) continue;
+            const c = edgeCtrl(e); const len = Math.hypot(b.x - a.x, b.y - a.y);
+            const K = Math.max(8, Math.min(160, Math.ceil(len / 3)));
+            let bi = 0, bdist = Infinity;
+            for (let i = 0; i <= K; i++) { const t = i / K; const p = quadAt(a, c, b, t); const d = Math.hypot(x - p.x, y - p.y); if (d < bdist) { bdist = d; bi = i; } }
+            const hit = e.width / 2 + thr;
+            if (bdist < hit && bdist < bd) { bd = bdist; const t = bi / K; const p = quadAt(a, c, b, t); best = { edge: e, t, px: p.x, py: p.y }; }
+        }
+        return best;
+    }
+    function splitEdgeAt(edge, t) {
+        if (edge.ring) return nodes.find(n => n.id === edge.from);
+        if (t <= 0.02) return nodes.find(n => n.id === edge.from);
+        if (t >= 0.98) return nodes.find(n => n.id === edge.to);
+        const a = nodes.find(n => n.id === edge.from), b = nodes.find(n => n.id === edge.to);
+        const c = edgeCtrl(edge);
+        const P = quadAt(a, c, b, t);
+        const m0 = { x: a.x + (c.x - a.x) * t, y: a.y + (c.y - a.y) * t };
+        const m1 = { x: c.x + (b.x - c.x) * t, y: c.y + (b.y - c.y) * t };
+        const nn = { id: nextId++, x: P.x, y: P.y, z: a.z + (b.z - a.z) * t };
+        if (edge.grp != null && groups.has(edge.grp)) { nn.grp = edge.grp; const g = groups.get(edge.grp); nn.lx = P.x - g.wx; nn.ly = P.y - g.wy; }
+        nodes.push(nn);
+        edges = edges.filter(e => e.id !== edge.id);
+        const mk = (f, to, cc) => { const e = { id: nextId++, from: f.id, to: to.id, type: edge.type, surface: edge.surface, width: edge.width, lanes: edge.lanes, laneWidth: edge.laneWidth, shoulder: edge.shoulder, curvature: edge.curvature, cx: cc.x, cy: cc.y, grp: edge.grp }; edges.push(e); return e.id; };
+        const id1 = mk(a, nn, m0), id2 = mk(nn, b, m1);
+        if (!suppressUndo) undoStack.push({ action: 'split', removedEdge: edge, newNodeId: nn.id, newEdgeIds: [id1, id2] });
+        return nn;
+    }
+    function roadAxisPhi(snap) {
+        let sc = 0, ss = 0, cnt = 0;
+        if (snap.type === 'node') {
+            const a = snap.target;
+            for (const e of edges) {
+                let o = null; if (e.from === a.id) o = nodes.find(n => n.id === e.to); else if (e.to === a.id) o = nodes.find(n => n.id === e.from);
+                if (o) { const dx = o.x - a.x, dy = o.y - a.y, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l; sc += ux * ux - uy * uy; ss += 2 * ux * uy; cnt++; }
+            }
+        } else {
+            const e = snap.edge; const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+            if (a && b) { const c = edgeCtrl(e); const tg = quadTangent(a, c, b, snap.t != null ? snap.t : 0.5); const l = Math.hypot(tg.x, tg.y) || 1; const ux = tg.x / l, uy = tg.y / l; sc = ux * ux - uy * uy; ss = 2 * ux * uy; cnt = 1; }
+        }
+        if (cnt === 0) return 0;
+        return 0.5 * Math.atan2(ss, sc);
+    }
+
+    function updateSnapIndicator(worldX, worldY) {
+        const threshold = SNAP_THRESHOLD / camera.zoom;
+        const drawMode = currentTool === 'chain' || currentTool === 'ruler' || currentTool === 'template';
+        let nearestNode = findNearestNode(worldX, worldY, threshold);
+        if (!nearestNode && (currentTool === 'chain' || currentTool === 'ruler')) {
+            for (const p of chainPoints) { if (Math.hypot(p.x - worldX, p.y - worldY) < threshold) { nearestNode = { x: p.x, y: p.y, id: -1 }; break; } }
+        }
+        if (nearestNode) {
+            snapPoint = { x: nearestNode.x, y: nearestNode.y, type: 'node', target: nearestNode };
+        } else if (drawMode) {
+            const ne = nearestEdgeAt(worldX, worldY, threshold);
+            snapPoint = ne ? { x: ne.px, y: ne.py, type: 'edge', edge: ne.edge, t: ne.t } : null;
+        } else {
+            snapPoint = null;
+        }
+        if (currentTool === 'eraser') {
+            hoveredEraserTarget = findNearestEdge(worldX, worldY, 5);
+            if (!hoveredEraserTarget) hoveredEraserTarget = findNearestNode(worldX, worldY, 15 / camera.zoom);
+        } else hoveredEraserTarget = null;
+    }
+
+    function computeAuto(type, isPreview) {
+        const enabled = document.getElementById('auto-align') ? document.getElementById('auto-align').checked : true;
+        const s = getSettings();
+        if (!enabled || !snapPoint) return { rot: 0, z: s.z, anchor: null };
+        const face = (FACE_LOCAL[type] || 0) * Math.PI / 180;
+        if (snapPoint.type === 'node') {
+            const a = snapPoint.target; if (!a || a.id === -1 || a.isPreview) return { rot: 0, z: s.z, anchor: null };
+            const phi = roadAxisPhi(snapPoint);
+            return { rot: phi - face, z: a.z, anchor: a };
+        }
+        const phi = roadAxisPhi(snapPoint);
+        const a = nodes.find(n => n.id === snapPoint.edge.from), b = nodes.find(n => n.id === snapPoint.edge.to);
+        const iz = a.z + (b.z - a.z) * snapPoint.t;
+        if (isPreview) return { rot: phi - face, z: iz, anchor: { x: snapPoint.x, y: snapPoint.y, z: iz, isPreview: true } };
+        const rn = splitEdgeAt(snapPoint.edge, snapPoint.t);
+        return { rot: phi - face, z: rn.z, anchor: rn };
+    }
+
+    function pushSnapshot() {
+        undoStack.push({
+            action: 'snapshot',
+            nodes: JSON.parse(JSON.stringify(nodes)),
+            edges: JSON.parse(JSON.stringify(edges)),
+            groups: new Map(JSON.parse(JSON.stringify(Array.from(groups.entries())))),
+            nextId, nextGroupId
+        });
+    }
+    function undoAction() {
+        if (undoStack.length === 0) return;
+        const last = undoStack.pop();
+        if (last.action === 'snapshot') {
+            nodes = last.nodes; edges = last.edges; groups = last.groups; nextId = last.nextId; nextGroupId = last.nextGroupId;
+            clearSelection(); render(); return;
+        }
+        if (last.action === 'split') {
+            edges = edges.filter(e => !last.newEdgeIds.includes(e.id));
+            edges.push(last.removedEdge);
+            nodes = nodes.filter(n => n.id !== last.newNodeId);
+            const c = new Set(); edges.forEach(e => { c.add(e.from); c.add(e.to); }); nodes = nodes.filter(n => c.has(n.id));
+            render(); return;
+        }
+        if (last.action === 'add' && last.type === 'edge') {
+            edges = edges.filter(e => e.id !== last.data.id);
+            const c = new Set(); edges.forEach(e => { c.add(e.from); c.add(e.to); }); nodes = nodes.filter(n => c.has(n.id)); render();
+        }
+    }
+    function clearAll() {
+        if (confirm("Reset current canvas?\n\nSaved maps in the Map Files section are NOT deleted.")) {
+            nodes = []; edges = []; undoStack = []; groups.clear(); clearSelection();
+            currentMapName = null;
+            if (!saveNameEl.value.trim()) saveNameEl.value = 'Road Map';
+            setStatus('Canvas reset. Saved maps untouched.');
+            render();
+        }
+    }
+    function clearType(type) {
+        let t = type === 'road' ? ['road','highway','bridge'] : ['rail','metro'];
+        edges = edges.filter(e => !t.includes(e.type));
+        const c = new Set(); edges.forEach(e => { c.add(e.from); c.add(e.to); }); nodes = nodes.filter(n => c.has(n.id)); render();
+    }
+    function deleteTarget(target) {
+        if (!target) return;
+        if (target.from === undefined) { edges = edges.filter(e => e.from !== target.id && e.to !== target.id); nodes = nodes.filter(n => n.id !== target.id); }
+        else { edges = edges.filter(e => e.id !== target.id); const c = new Set(); edges.forEach(e => { c.add(e.from); c.add(e.to); }); nodes = nodes.filter(n => c.has(n.id)); }
+        undoStack.push({ action: 'delete', type: 'mixed' }); render();
+    }
+    function deleteEdgeOnly(edge) { if (!edge || edge.from === undefined) return; edges = edges.filter(e => e.id !== edge.id); undoStack.push({ action: 'delete', type: 'edge-only' }); render(); }
+    function collectCluster(seed) {
+        const vN = new Set(), vE = new Set(); const queue = [];
+        if (seed.from !== undefined) { vE.add(seed.id); [seed.from, seed.to].forEach(id => { if (!vN.has(id)) { vN.add(id); queue.push(id); } }); }
+        else { if (!vN.has(seed.id)) { vN.add(seed.id); queue.push(seed.id); } }
+        while (queue.length) { const nid = queue.shift(); for (const e of edges) { if (vE.has(e.id)) continue; if (e.from === nid || e.to === nid) { vE.add(e.id); const other = e.from === nid ? e.to : e.from; if (!vN.has(other)) { vN.add(other); queue.push(other); } } } }
+        return { vN, vE };
+    }
+    function deleteCluster(seed) { if (!seed) return; const { vN, vE } = collectCluster(seed); nodes = nodes.filter(n => !vN.has(n.id)); edges = edges.filter(e => !vE.has(e.id)); undoStack.push({ action: 'delete', type: 'cluster' }); render(); }
+    function deleteArea(x, y, R) { const kill = new Set(); for (const n of nodes) if (Math.hypot(n.x - x, n.y - y) <= R) kill.add(n.id); if (kill.size === 0) return; nodes = nodes.filter(n => !kill.has(n.id)); edges = edges.filter(e => !kill.has(e.from) && !kill.has(e.to)); undoStack.push({ action: 'delete', type: 'area' }); render(); }
+
+    function groupNodes(gid) { return nodes.filter(n => n.grp === gid); }
+    function groupEdges(gid) { return edges.filter(e => e.grp === gid); }
+    function isGroupNode(n) { return n && n.grp != null && groups.has(n.grp); }
+    function isGroupEdge(e) { return e && e.grp != null && groups.has(e.grp); }
+    function nearestGroupNode(gid, wx, wy) {
+        let best = null, bd = Infinity;
+        for (const n of groupNodes(gid)) { const d = Math.hypot(n.x - wx, n.y - wy); if (d < bd) { bd = d; best = n.id; } }
+        return best;
+    }
+    function setGrabMode(m) {
+        grabMode = m;
+        document.getElementById('grab-group').classList.toggle('active', m === 'group');
+        document.getElementById('grab-node').classList.toggle('active', m === 'node');
+        document.getElementById('grab-network').classList.toggle('active', m === 'network');
+    }
+    function syncSelPanel() {
+        const none = selKind === null, grp = selKind === 'group', nds = selKind === 'nodes';
+        selEmptyEl.style.display = none ? 'block' : 'none';
+        selBodyEl.style.display = grp ? 'block' : 'none';
+        selNodesEl.style.display = nds ? 'block' : 'none';
+        if (nds) selNodesCountEl.textContent = selNodes.size + (selNodes.size === 1 ? ' node' : ' nodes') + ' selected';
+    }
+    function clearSelection() { selKind = null; selGroup = null; selNode = null; selNodes = new Set(); dragAnchorNode = null; marquee = null; marqueeActive = false; syncSelPanel(); }
+    function selectGroup(gid) {
+        const g = groups.get(gid); if (!g) { clearSelection(); return; }
+        selKind = 'group'; selGroup = gid; selNode = null; selNodes = new Set();
+        selTitleEl.textContent = (TYPE_NAME[g.type] || g.type) + '  (' + groupNodes(gid).length + ' nodes / ' + groupEdges(gid).length + ' edges)';
+        document.getElementById('sel-lanes').value = g.lanes;
+        document.getElementById('sel-lanewidth').value = g.laneWidth;
+        document.getElementById('sel-shoulder').value = g.shoulder;
+        document.getElementById('sel-size').value = g.size;
+        document.getElementById('sel-rotation').value = ((Math.round(g.rotDeg) % 360) + 360) % 360;
+        syncSelPanel();
+    }
+    function selectNode(n) { selKind = 'nodes'; selNode = n; selGroup = null; selNodes = new Set([n.id]); dragAnchorNode = null; syncSelPanel(); }
+    function selectNetwork(n) {
+        if (!n) return;
+        const adj = new Map(); const add = (k, v) => { if (!adj.has(k)) adj.set(k, []); adj.get(k).push(v); };
+        for (const e of edges) { add(e.from, e.to); add(e.to, e.from); }
+        const vis = new Set([n.id]); const q = [n.id];
+        while (q.length) { const id = q.shift(); for (const nb of (adj.get(id) || [])) { if (!vis.has(nb)) { vis.add(nb); q.push(nb); } } }
+        selKind = 'nodes'; selNode = n; selGroup = null; selNodes = vis; dragAnchorNode = null; syncSelPanel();
+    }
+    function toggleNodeInSel(n) {
+        if (selNodes.has(n.id)) selNodes.delete(n.id); else selNodes.add(n.id);
+        if (selNodes.size === 0) { selKind = null; selNode = null; }
+        else { selKind = 'nodes'; selNode = n; selGroup = null; }
+        syncSelPanel();
+    }
+    function translateGroup(gid, dx, dy) {
+        const g = groups.get(gid); if (!g) return;
+        for (const n of groupNodes(gid)) { n.x += dx; n.y += dy; }
+        g.wx += dx; g.wy += dy;
+    }
+    function applyGroupScale(gid, k) {
+        const g = groups.get(gid); if (!g || !(k > 0)) return;
+        for (const n of groupNodes(gid)) { if (n.lx == null) continue; n.lx *= k; n.ly *= k; n.x = g.wx + n.lx; n.y = g.wy + n.ly; }
+        for (const e of groupEdges(gid)) { if (e.ring) e.ring.r *= k; }
+        g.size *= k;
+    }
+    function applyGroupRotate(gid, rad) {
+        const g = groups.get(gid); if (!g) return;
+        const cs = Math.cos(rad), sn = Math.sin(rad);
+        for (const n of groupNodes(gid)) { if (n.lx == null) continue; const nx = n.lx * cs - n.ly * sn, ny = n.lx * sn + n.ly * cs; n.lx = nx; n.ly = ny; n.x = g.wx + nx; n.y = g.wy + ny; }
+        g.rotDeg += rad * 180 / Math.PI;
+    }
+    function foreignSnap(wx, wy, gid) {
+        const thr = SNAP_THRESHOLD / camera.zoom;
+        let bn = null, bd = thr;
+        for (const n of nodes) { if (n.grp === gid) continue; const d = Math.hypot(n.x - wx, n.y - wy); if (d < bd) { bd = d; bn = n; } }
+        if (bn) return { x: bn.x, y: bn.y, phi: roadAxisPhi({ type: 'node', target: bn }) };
+        let be = null, bet = 0, bed = thr;
+        for (const e of edges) {
+            if (e.grp === gid || e.ring) continue;
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to); if (!a || !b) continue;
+            const c = edgeCtrl(e); const len = Math.hypot(b.x - a.x, b.y - a.y); if (len === 0) continue;
+            const K = Math.max(8, Math.min(160, Math.ceil(len / 3)));
+            let bi = 0, bdist = Infinity;
+            for (let i = 0; i <= K; i++) { const t = i / K; const p = quadAt(a, c, b, t); const d = Math.hypot(wx - p.x, wy - p.y); if (d < bdist) { bdist = d; bi = i; } }
+            if (bdist < e.width / 2 + thr && bdist < bed) { bed = bdist; be = e; bet = bi / K; }
+        }
+        if (be) { const a = nodes.find(n => n.id === be.from), b = nodes.find(n => n.id === be.to); const p = quadAt(a, edgeCtrl(be), b, bet); return { x: p.x, y: p.y, phi: roadAxisPhi({ type: 'edge', edge: be, t: bet }) }; }
+        return null;
+    }
+
+    function findForeignNodeTarget(wx, wy, excludeSet, srcGrp) {
+        const thr = SNAP_THRESHOLD / camera.zoom;
+        let best = null, bd = thr;
+        for (const n of nodes) {
+            if (excludeSet.has(n.id)) continue;
+            if (srcGrp != null && n.grp != null && n.grp !== srcGrp) continue;
+            const d = Math.hypot(n.x - wx, n.y - wy);
+            if (d < bd) { bd = d; best = n; }
+        }
+        return best;
+    }
+    function findForeignEdgeTarget(wx, wy, excludeSet, srcGrp) {
+        const thr = SNAP_THRESHOLD / camera.zoom;
+        let best = null, bestD = thr;
+        for (const e of edges) {
+            if (e.ring) continue;
+            if (excludeSet.has(e.from) || excludeSet.has(e.to)) continue;
+            if (srcGrp != null && e.grp != null && e.grp !== srcGrp) continue;
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to); if (!a || !b) continue;
+            const c = edgeCtrl(e); const len = Math.hypot(b.x - a.x, b.y - a.y); if (len === 0) continue;
+            const K = Math.max(8, Math.min(160, Math.ceil(len / 3)));
+            let bi = 0, bdist = Infinity;
+            for (let i = 0; i <= K; i++) { const t = i / K; const p = quadAt(a, c, b, t); const d = Math.hypot(wx - p.x, wy - p.y); if (d < bdist) { bdist = d; bi = i; } }
+            if (bdist < e.width / 2 + thr && bdist < bestD) { bestD = bdist; best = { edge: e, t: bi / K }; }
+        }
+        return best;
+    }
+    function mergeNodeInto(srcId, tgtId) {
+        if (srcId === tgtId) return false;
+        const src = nodes.find(n => n.id === srcId), tgt = nodes.find(n => n.id === tgtId);
+        if (!src || !tgt) return false;
+        if (src.grp != null && !groups.has(src.grp)) return false;
+        if (src.grp != null && tgt.grp != null && src.grp !== tgt.grp) return false;
+        if (src.grp != null && tgt.grp == null) {
+            const g = groups.get(src.grp);
+            tgt.grp = src.grp; tgt.lx = tgt.x - g.wx; tgt.ly = tgt.y - g.wy;
+        }
+        const kill = new Set();
+        for (const e of edges) {
+            if (e.from === srcId) e.from = tgtId;
+            if (e.to === srcId) e.to = tgtId;
+            if (!e.ring && e.from === e.to) kill.add(e.id);
+        }
+        if (kill.size) edges = edges.filter(e => !kill.has(e.id));
+        nodes = nodes.filter(n => n.id !== srcId);
+        return true;
+    }
+    function weldNodeToForeign(srcId, excludeSet) {
+        const src = nodes.find(n => n.id === srcId); if (!src) return false;
+        const tgtNode = findForeignNodeTarget(src.x, src.y, excludeSet, src.grp);
+        if (tgtNode) return mergeNodeInto(srcId, tgtNode.id);
+        const hit = findForeignEdgeTarget(src.x, src.y, excludeSet, src.grp);
+        if (hit) {
+            const newNode = splitEdgeAt(hit.edge, hit.t);
+            if (newNode) return mergeNodeInto(srcId, newNode.id);
+        }
+        return false;
+    }
+    function weldAfterMove() {
+        const aa = document.getElementById('auto-align');
+        if (!aa || !aa.checked) return;
+        let ids = [], exclude = new Set();
+        if (selKind === 'group' && selGroup != null && groups.has(selGroup)) {
+            let src = dragAnchorNode;
+            if (src == null || !nodes.find(n => n.id === src && n.grp === selGroup)) {
+                const pt = lastGroupSnap || mouseWorld;
+                src = nearestGroupNode(selGroup, pt.x, pt.y);
+            }
+            if (src == null) return;
+            ids = [src];
+            exclude = new Set(groupNodes(selGroup).map(n => n.id));
+        } else if (selKind === 'nodes' && selNodes.size) {
+            ids = [...selNodes];
+            exclude = new Set(ids);
+        } else return;
+        if (!ids.length) return;
+        suppressUndo = true;
+        pushSnapshot();
+        let changed = false;
+        for (const id of ids) { if (weldNodeToForeign(id, exclude)) changed = true; }
+        suppressUndo = false;
+        if (!changed) undoStack.pop();
+        else clearSelection();
+        render();
+    }
+
+    function selEditLanes() {
+        if (selKind !== 'group') return; const g = groups.get(selGroup); if (!g) return;
+        const v = Math.max(1, Math.min(8, parseInt(document.getElementById('sel-lanes').value) || g.lanes));
+        for (const e of groupEdges(selGroup)) { e.lanes = v; e.width = (e.laneWidth || 3.5) * v + 2 * (e.shoulder || 1.5); }
+        g.lanes = v; render();
+    }
+    function selEditLaneWidth() {
+        if (selKind !== 'group') return; const g = groups.get(selGroup); if (!g) return;
+        const v = parseFloat(document.getElementById('sel-lanewidth').value) || g.laneWidth;
+        for (const e of groupEdges(selGroup)) { e.laneWidth = v; e.width = v * (e.lanes || g.lanes) + 2 * (e.shoulder || 1.5); }
+        g.laneWidth = v; render();
+    }
+    function selEditShoulder() {
+        if (selKind !== 'group') return; const g = groups.get(selGroup); if (!g) return;
+        const v = parseFloat(document.getElementById('sel-shoulder').value); const sv = isNaN(v) ? g.shoulder : v;
+        for (const e of groupEdges(selGroup)) { e.shoulder = sv; e.width = (e.laneWidth || 3.5) * (e.lanes || g.lanes) + 2 * sv; }
+        g.shoulder = sv; render();
+    }
+    function selEditSize() {
+        if (selKind !== 'group') return; const g = groups.get(selGroup); if (!g) return;
+        const nv = parseFloat(document.getElementById('sel-size').value); if (!(nv > 0) || !(g.size > 0)) return;
+        applyGroupScale(selGroup, nv / g.size); render();
+    }
+    function selEditRotation() {
+        if (selKind !== 'group') return; const g = groups.get(selGroup); if (!g) return;
+        const nv = parseFloat(document.getElementById('sel-rotation').value); if (isNaN(nv)) return;
+        applyGroupRotate(selGroup, (nv - g.rotDeg) * Math.PI / 180); render();
+    }
+    function selDeselect() { clearSelection(); render(); }
+    function deleteGroupById(gid) {
+        edges = edges.filter(e => e.grp !== gid);
+        const ref = new Set(); edges.forEach(e => { ref.add(e.from); ref.add(e.to); });
+        nodes = nodes.filter(n => !(n.grp === gid && !ref.has(n.id)));
+        groups.delete(gid);
+        if (selGroup === gid) clearSelection();
+    }
+    function selDelete() { if (selKind === 'group') { deleteGroupById(selGroup); render(); } }
+    function deleteNodeSet(ids) {
+        if (!ids || !ids.size) return;
+        edges = edges.filter(e => !ids.has(e.from) && !ids.has(e.to));
+        nodes = nodes.filter(n => !ids.has(n.id));
+        const c = new Set(); edges.forEach(e => { c.add(e.from); c.add(e.to); });
+        nodes = nodes.filter(n => c.has(n.id));
+        for (const gid of [...groups.keys()]) { if (groupNodes(gid).length === 0) groups.delete(gid); }
+        undoStack.push({ action: 'delete', type: 'node-set' });
+        clearSelection();
+    }
+    function selDeleteNodes() { if (selKind === 'nodes') { deleteNodeSet(new Set(selNodes)); render(); } }
+    function duplicateGroup(gid) {
+        const g = groups.get(gid); if (!g) return null;
+        const DX = 30, DY = 30, ng = nextGroupId++;
+        const map = new Map();
+        for (const n of groupNodes(gid)) {
+            const cn = { id: nextId++, x: n.x + DX, y: n.y + DY, z: n.z, grp: ng, lx: n.lx, ly: n.ly };
+            if (n._ring) cn._ring = true;
+            nodes.push(cn); map.set(n.id, cn);
+        }
+        for (const e of groupEdges(gid)) {
+            const f = map.get(e.from), t = map.get(e.to); if (!f || !t) continue;
+            const ce = { id: nextId++, from: f.id, to: t.id, type: e.type, surface: e.surface, width: e.width, lanes: e.lanes, laneWidth: e.laneWidth, shoulder: e.shoulder, curvature: e.curvature, grp: ng };
+            if (e.cx !== undefined) { ce.cx = e.cx + DX; ce.cy = e.cy + DY; }
+            if (e.ring) ce.ring = { cx: e.ring.cx + DX, cy: e.ring.cy + DY, r: e.ring.r };
+            edges.push(ce);
+        }
+        groups.set(ng, { id: ng, type: g.type, wx: g.wx + DX, wy: g.wy + DY, size: g.size, rotDeg: g.rotDeg, lanes: g.lanes, laneWidth: g.laneWidth, shoulder: g.shoulder, anchorId: null });
+        return ng;
+    }
+    function openCtxMenu(gid, cx, cy) {
+        const g = groups.get(gid); if (!g) return;
+        ctxGid = gid; ctxHeadEl.textContent = (TYPE_NAME[g.type] || g.type);
+        ctxMenuEl.style.display = 'block';
+        let x = cx, y = cy;
+        const mw = ctxMenuEl.offsetWidth, mh = ctxMenuEl.offsetHeight;
+        if (x + mw > window.innerWidth) x = Math.max(4, window.innerWidth - mw - 4);
+        if (y + mh > window.innerHeight) y = Math.max(4, window.innerHeight - mh - 4);
+        ctxMenuEl.style.left = x + 'px'; ctxMenuEl.style.top = y + 'px';
+    }
+    function closeCtxMenu() { ctxMenuEl.style.display = 'none'; ctxGid = null; }
+    function ctxAct(a) {
+        const gid = ctxGid; closeCtxMenu(); if (gid == null) return;
+        if (a === 'edit' || a === 'move') { currentTool = 'select'; setGrabMode('group'); refreshButtonStates(); selectGroup(gid); render(); }
+        else if (a === 'dup') { const ng = duplicateGroup(gid); currentTool = 'select'; refreshButtonStates(); if (ng != null) selectGroup(ng); render(); }
+        else if (a === 'del') { deleteGroupById(gid); render(); }
+    }
+
+    function openEdgeCtx(edgeId, cx, cy) {
+        const e = edges.find(x => x.id === edgeId);
+        if (!e || (e.type !== 'rail' && e.type !== 'metro')) return;
+
+        closeCtxMenu();
+        ctxEdgeId = edgeId;
+        edgeHeadEl.textContent = e.type === 'metro' ? 'Underground Metro segment' : 'Surface Railway segment';
+        edgeMenuEl.style.display = 'block';
+
+        let x = cx, y = cy;
+        const mw = edgeMenuEl.offsetWidth, mh = edgeMenuEl.offsetHeight;
+        if (x + mw > window.innerWidth) x = Math.max(4, window.innerWidth - mw - 4);
+        if (y + mh > window.innerHeight) y = Math.max(4, window.innerHeight - mh - 4);
+        edgeMenuEl.style.left = x + 'px';
+        edgeMenuEl.style.top = y + 'px';
+    }
+
+    function closeEdgeCtx() {
+        edgeMenuEl.style.display = 'none';
+        ctxEdgeId = null;
+    }
+
+    function edgeCtxAct(a) {
+        const id = ctxEdgeId;
+        closeEdgeCtx();
+        if (id == null) return;
+
+        const e = edges.find(x => x.id === id);
+        if (!e) return;
+
+        pushSnapshot();
+
+        if (a === 'surface') {
+            e.type = 'rail';
+        }
+        else if (a === 'metro') {
+            e.type = 'metro';
+        }
+        else if (a === 'depthDown' || a === 'depthUp') {
+            const dz = (a === 'depthDown') ? -5 : 5;
+            const n1 = nodes.find(n => n.id === e.from);
+            const n2 = nodes.find(n => n.id === e.to);
+            if (n1) n1.z += dz;
+            if (n2) n2.z += dz;
+        }
+        else if (a === 'del') {
+            edges = edges.filter(x => x.id !== id);
+
+            const ref = new Set();
+            edges.forEach(x => { ref.add(x.from); ref.add(x.to); });
+            nodes = nodes.filter(n => ref.has(n.id));
+
+            for (const gid of [...groups.keys()]) {
+                if (groupNodes(gid).length === 0) groups.delete(gid);
+            }
+
+            if (selNode && !nodes.find(n => n.id === selNode.id)) clearSelection();
+
+            if (selKind === 'nodes') {
+                const alive = new Set([...selNodes].filter(nid => nodes.some(n => n.id === nid)));
+                if (alive.size !== selNodes.size) {
+                    selNodes = alive;
+                    if (!selNodes.size) clearSelection();
+                    else syncSelPanel();
+                }
+            }
+
+            if (selKind === 'group' && (!groups.has(selGroup))) clearSelection();
+        }
+
+        render();
+    }
+
+    function num(v, d) { v = Number(v); return isFinite(v) ? v : d; }
+
+    function normalizeGroup(raw) {
+        if (!raw || typeof raw.id !== 'number' || !isFinite(raw.id)) return null;
+        return {
+            id: raw.id,
+            type: String(raw.type || 'square-intersection'),
+            wx: num(raw.wx, 0),
+            wy: num(raw.wy, 0),
+            size: Math.max(0.1, num(raw.size, 1)),
+            rotDeg: num(raw.rotDeg, 0),
+            lanes: Math.max(1, Math.min(8, Math.round(num(raw.lanes, 2)))),
+            laneWidth: Math.max(0.1, num(raw.laneWidth, 3.5)),
+            shoulder: Math.max(0, num(raw.shoulder, 1.5)),
+            anchorId: (raw.anchorId != null && isFinite(raw.anchorId)) ? raw.anchorId : null
+        };
+    }
+
+    function normalizeNode(raw, groupMap) {
+        if (!raw || typeof raw.id !== 'number' || !isFinite(raw.id)) return null;
+        const n = { id: raw.id, x: num(raw.x, 0), y: num(raw.y, 0), z: num(raw.z, 0) };
+        if (raw.grp != null && groupMap.has(raw.grp)) n.grp = raw.grp;
+        if (raw.lx != null) n.lx = num(raw.lx, 0);
+        if (raw.ly != null) n.ly = num(raw.ly, 0);
+        if (raw._ring) n._ring = true;
+        return n;
+    }
+
+    function normalizeEdge(raw, nodeSet, groupMap) {
+        if (!raw || typeof raw.id !== 'number' || !isFinite(raw.id)) return null;
+        if (!nodeSet.has(raw.from) || !nodeSet.has(raw.to)) return null;
+
+        const lanes = Math.max(1, Math.min(8, Math.round(num(raw.lanes, 2))));
+        const laneWidth = Math.max(0.1, num(raw.laneWidth, 3.5));
+        const shoulder = Math.max(0, num(raw.shoulder, 1.5));
+        let width = num(raw.width, NaN);
+        if (!isFinite(width) || width <= 0) width = laneWidth * lanes + 2 * shoulder;
+
+        const e = {
+            id: raw.id,
+            from: raw.from,
+            to: raw.to,
+            type: raw.type || 'road',
+            surface: raw.surface || 'asphalt',
+            width,
+            lanes,
+            laneWidth,
+            shoulder
+        };
+
+        if (raw.curvature != null) e.curvature = num(raw.curvature, 0);
+        if (raw.cx != null) e.cx = num(raw.cx, 0);
+        if (raw.cy != null) e.cy = num(raw.cy, 0);
+        if (raw.grp != null && groupMap.has(raw.grp)) e.grp = raw.grp;
+
+        if (raw.ring && typeof raw.ring === 'object') {
+            const rr = { cx: num(raw.ring.cx, 0), cy: num(raw.ring.cy, 0), r: num(raw.ring.r, 0) };
+            if (rr.r > 0) e.ring = rr;
+        }
+
+        return e;
+    }
+
+    function resetTransient() {
+        chainPoints = [];
+        segmentCurves = [];
+        currentSegmentCurve = 0;
+        chainUI.style.display = 'none';
+        curvatureVal.textContent = '0';
+
+        selectedNode = null;
+        hoveredEraserTarget = null;
+        previewChain = [];
+        hoveredGroup = null;
+        snapPoint = null;
+
+        geometryDragged = false;
+        lastGroupSnap = null;
+        dragAnchorNode = null;
+
+        marquee = null;
+        marqueeActive = false;
+        panPending = null;
+        downPos = null;
+
+        isDragging = false;
+        isPanning = false;
+
+        closeCtxMenu();
+        closeEdgeCtx();
+        clearSelection();
+    }
+
+    function serializeMap(name) {
+        return {
+            version: 1,
+            build: BUILD,
+            name: name || currentMapName || (saveNameEl ? saveNameEl.value : '') || 'Road Map',
+            savedAt: new Date().toISOString(),
+            nextId,
+            nextGroupId,
+            nodes: nodes.filter(n => !n.isPreview).map(n => ({ ...n })),
+            edges: edges.map(e => ({ ...e })),
+            groups: Array.from(groups.values()).map(g => ({ ...g }))
+        };
+    }
+
+    function importMapData(data, canUndo) {
+        if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
+            throw new Error('Invalid map JSON: expected { nodes: [], edges: [] }.');
+        }
+
+        const newGroups = new Map();
+        if (Array.isArray(data.groups)) {
+            for (const raw of data.groups) {
+                const g = normalizeGroup(raw);
+                if (g) newGroups.set(g.id, g);
+            }
+        }
+
+        const nodeIdSet = new Set();
+        const newNodes = [];
+        for (const raw of data.nodes) {
+            const n = normalizeNode(raw, newGroups);
+            if (n && !nodeIdSet.has(n.id)) {
+                nodeIdSet.add(n.id);
+                newNodes.push(n);
+            }
+        }
+
+        const edgeIdSet = new Set();
+        const newEdges = [];
+        for (const raw of data.edges) {
+            const e = normalizeEdge(raw, nodeIdSet, newGroups);
+            if (e && !edgeIdSet.has(e.id)) {
+                edgeIdSet.add(e.id);
+                newEdges.push(e);
+            }
+        }
+
+        for (const [gid] of [...newGroups.entries()]) {
+            const hasN = newNodes.some(n => n.grp === gid);
+            const hasE = newEdges.some(e => e.grp === gid);
+            if (!hasN && !hasE) newGroups.delete(gid);
+        }
+
+        if (canUndo) pushSnapshot();
+
+        resetTransient();
+
+        nodes = newNodes;
+        edges = newEdges;
+        groups = newGroups;
+
+        const maxNodeId = newNodes.reduce((m, n) => Math.max(m, n.id), 0);
+        const maxEdgeId = newEdges.reduce((m, e) => Math.max(m, e.id), 0);
+        nextId = Math.max(Number(data.nextId) || 0, maxNodeId + 1, maxEdgeId + 1);
+
+        const maxGroupId = Array.from(newGroups.keys()).reduce((m, id) => Math.max(m, id), 0);
+        nextGroupId = Math.max(Number(data.nextGroupId) || 0, maxGroupId + 1);
+
+        render();
+    }
+
+    function setStatus(msg, kind = 'ok') {
+        if (!storageStatusEl) return;
+        storageStatusEl.textContent = msg;
+        storageStatusEl.style.color = kind === 'error' ? '#ff8a8a' : kind === 'warn' ? '#ffd24a' : '#7fd4e8';
+    }
+
+    function sanitizeMapName(name) {
+        const cleaned = String(name || '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, 80);
+        return cleaned || 'Road Map';
+    }
+
+    function exportFileNameForMap(data) {
+        const raw = sanitizeMapName((data && data.name) || saveNameEl.value || currentMapName || 'Road Map');
+        const safe = raw
+            .replace(/[^\w\-]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .slice(0, 60);
+
+        if (!safe || safe === 'Road_Map') return 'road-map.json';
+        return `road-map-${safe}.json`;
+    }
+
+    function getSaveIndex() {
+        try {
+            const raw = localStorage.getItem(SAVES_INDEX_KEY);
+            const arr = raw ? JSON.parse(raw) : [];
+            return Array.isArray(arr) ? arr.filter(x => typeof x === 'string' && x.length) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function setSaveIndex(arr) {
+        const uniq = [...new Set(arr.filter(x => typeof x === 'string' && x.length))];
+        localStorage.setItem(SAVES_INDEX_KEY, JSON.stringify(uniq));
+    }
+
+    function listSavedMaps() {
+        const idx = getSaveIndex();
+        const valid = idx.filter(n => {
+            try {
+                return localStorage.getItem(SAVE_PREFIX + n) != null;
+            } catch (e) {
+                return false;
+            }
+        });
+        if (valid.length !== idx.length) {
+            try { setSaveIndex(valid); } catch (e) {}
+        }
+        return valid.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    }
+
+    function refreshSavedMapList(showStatus) {
+        const names = listSavedMaps();
+        const selected = savedMapListEl.value;
+        savedMapListEl.innerHTML = '';
+
+        if (!names.length) {
+            const o = document.createElement('option');
+            o.value = '';
+            o.textContent = '— No saved maps —';
+            savedMapListEl.appendChild(o);
+        } else {
+            for (const n of names) {
+                const o = document.createElement('option');
+                o.value = n;
+                o.textContent = n;
+                savedMapListEl.appendChild(o);
+            }
+            if (names.includes(selected)) savedMapListEl.value = selected;
+            else if (currentMapName && names.includes(currentMapName)) savedMapListEl.value = currentMapName;
+        }
+
+        if (showStatus) setStatus(names.length ? `Saved maps: ${names.length}` : 'No saved maps in this browser.');
+    }
+
+    function saveToLocalStorage(name, data) {
+        try {
+            localStorage.setItem(SAVE_PREFIX + name, JSON.stringify(data));
+            const idx = getSaveIndex();
+            if (!idx.includes(name)) idx.push(name);
+            setSaveIndex(idx);
+            return true;
+        } catch (e) {
+            setStatus('Save failed: ' + e.message, 'error');
+            alert('Save failed: ' + e.message);
+            return false;
+        }
+    }
+
+    function saveNamedMap() {
+        const name = sanitizeMapName(saveNameEl.value);
+        const existing = listSavedMaps().includes(name);
+        if (existing && !confirm(`Overwrite saved map "${name}"?`)) return;
+
+        const data = serializeMap(name);
+        if (saveToLocalStorage(name, data)) {
+            currentMapName = name;
+            saveNameEl.value = name;
+            try { localStorage.setItem(LAST_SAVE_KEY, name); } catch (e) {}
+            refreshSavedMapList(false);
+            savedMapListEl.value = name;
+            setStatus(`Saved "${name}" to this browser.`);
+        }
+    }
+
+    function loadMapDataByName(name, canUndo, silent) {
+        try {
+            const raw = localStorage.getItem(SAVE_PREFIX + name);
+            if (!raw) throw new Error('Save not found.');
+            const data = JSON.parse(raw);
+            importMapData(data, canUndo);
+            currentMapName = data.name || name;
+            saveNameEl.value = currentMapName;
+            try { localStorage.setItem(LAST_SAVE_KEY, currentMapName); } catch (e) {}
+            refreshSavedMapList(false);
+            savedMapListEl.value = name;
+            if (!silent) setStatus(`Loaded "${name}".`);
+            return true;
+        } catch (e) {
+            setStatus('Load failed: ' + e.message, 'error');
+            if (!silent) alert('Load failed: ' + e.message);
+            return false;
+        }
+    }
+
+    function loadSelectedMap() {
+        const name = savedMapListEl.value;
+        if (!name) {
+            setStatus('Select a saved map first.', 'warn');
+            return;
+        }
+        loadMapDataByName(name, true, false);
+    }
+
+    function deleteSelectedMap() {
+        const name = savedMapListEl.value;
+        if (!name) {
+            setStatus('Select a saved map to delete.', 'warn');
+            return;
+        }
+        if (!confirm(`Delete saved map "${name}" from this browser?\n\nThis cannot be undone.`)) return;
+
+        try {
+            localStorage.removeItem(SAVE_PREFIX + name);
+            const idx = getSaveIndex().filter(n => n !== name);
+            setSaveIndex(idx);
+            if (currentMapName === name) currentMapName = null;
+            try {
+                if (localStorage.getItem(LAST_SAVE_KEY) === name) localStorage.removeItem(LAST_SAVE_KEY);
+            } catch (e) {}
+            refreshSavedMapList(false);
+            setStatus(`Deleted "${name}". Current canvas was not cleared.`);
+        } catch (e) {
+            setStatus('Delete failed: ' + e.message, 'error');
+        }
+    }
+
+    function importMapClick() {
+        importFileEl.click();
+    }
+
+    function handleImportFile(ev) {
+        const file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                const base = file.name.replace(/\.json$/i, '');
+                const name = sanitizeMapName(data.name || base);
+                importMapData(data, true);
+                currentMapName = name;
+                saveNameEl.value = name;
+                refreshSavedMapList(false);
+                setStatus(`Imported "${name}". Press Save Map to store it locally.`);
+            } catch (err) {
+                setStatus('Import failed: ' + err.message, 'error');
+                alert('Import failed: ' + err.message);
+            } finally {
+                ev.target.value = '';
+            }
+        };
+        reader.onerror = function () {
+            setStatus('Import failed: could not read file.', 'error');
+            alert('Import failed: could not read file.');
+            ev.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function exportMap() {
+        try {
+            const name = sanitizeMapName(saveNameEl.value || currentMapName || 'Road Map');
+            const data = serializeMap(name);
+            const fileName = exportFileNameForMap(data);
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+            setStatus(`Exported as ${fileName}.`);
+        } catch (e) {
+            setStatus('Export failed: ' + e.message, 'error');
+            alert('Export failed: ' + e.message);
+        }
+    }
+
+    function migrateLegacySave() {
+        try {
+            const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (!raw) return false;
+            const data = JSON.parse(raw);
+            const name = 'Migrated Auto-save';
+            if (!listSavedMaps().includes(name)) {
+                saveToLocalStorage(name, data);
+            }
+            localStorage.removeItem(LEGACY_STORAGE_KEY);
+            setStatus('Migrated previous auto-save to "Migrated Auto-save".');
+            return true;
+        } catch (e) {
+            console.warn('Could not migrate legacy save:', e);
+            return false;
+        }
+    }
+
+    function initStorage() {
+        refreshSavedMapList(false);
+        migrateLegacySave();
+        refreshSavedMapList(false);
+
+        let last = null;
+        try { last = localStorage.getItem(LAST_SAVE_KEY); } catch (e) {}
+
+        const names = listSavedMaps();
+        if (last && names.includes(last)) {
+            loadMapDataByName(last, false, true);
+        } else if (names.length === 0) {
+            setStatus('No saved maps yet. Draw a map and press Save Map.');
+        } else {
+            setStatus(`${names.length} saved map(s) available.`);
+        }
+    }
+
+    function refreshButtonStates() {
+        document.querySelectorAll('.tool-grid .btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.cat-toggle').forEach(b => b.classList.remove('active'));
+        if (currentTool === 'template' && activeTemplateCat) {
+            const cb = document.getElementById('cat-' + activeTemplateCat); if (cb) cb.classList.add('active');
+        } else {
+            const tb = document.getElementById('tool-' + currentTool); if (tb) tb.classList.add('active');
+        }
+        ['road','bridge','rail'].forEach(c => {
+            const el = document.getElementById('cat-' + c);
+            if (el) el.textContent = CAT_LABEL[c] + (activeTemplateCat === c ? '  ●ON' : '  ○OFF');
+        });
+    }
+    function updateArmsForType(type) {
+        tmplArmsGroup.style.display = ARMS_TYPES.has(type) ? 'block' : 'none';
+        if (type === 'y-junction' || type === 'exit-ramp') document.getElementById('tmpl-arms').value = 3;
+        else if (type === 'mini-roundabout') document.getElementById('tmpl-arms').value = 3;
+        else if (type === 'roundabout') document.getElementById('tmpl-arms').value = 4;
+        document.getElementById('tmpl-lanes').value = document.getElementById('num-lanes').value;
+    }
+    function setTool(tool) {
+        currentTool = tool; activeTemplateCat = null; pendingTemplate = null;
+        templateHint.style.display = 'none'; cancelChain();
+        isDragging = false; selectedNode = null; previewChain = []; hoveredEraserTarget = null; hoveredGroup = null;
+        clearSelection(); closeCtxMenu(); closeEdgeCtx(); panPending = null; geometryDragged = false; lastGroupSnap = null;
+        curvatureDisplay.style.display = (tool === 'chain' || tool === 'ruler') ? 'block' : 'none';
+        canvas.style.cursor = tool === 'select' ? 'default' : (tool === 'eraser' ? 'pointer' : 'crosshair');
+        templateSettingsEl.style.display = 'none';
+        eraserOptionsEl.style.display = (tool === 'eraser') ? 'block' : 'none';
+        isPanning = false;
+        refreshButtonStates();
+        render();
+    }
+    function toggleTemplateCat(cat) {
+        if (activeTemplateCat === cat) { setTool('chain'); return; }
+        activeTemplateCat = cat; currentTool = 'template';
+        cancelChain(); isDragging = false; selectedNode = null; previewChain = []; hoveredEraserTarget = null; hoveredGroup = null; isPanning = false; clearSelection(); closeCtxMenu(); closeEdgeCtx(); panPending = null; geometryDragged = false; lastGroupSnap = null;
+        const sel = document.getElementById('tmpl-' + cat);
+        if (sel && !sel.value) { for (const o of sel.options) { if (o.value) { sel.value = o.value; break; } } }
+        pendingTemplate = sel ? sel.value : null;
+        templateSettingsEl.style.display = pendingTemplate ? 'block' : 'none';
+        templateHint.style.display = pendingTemplate ? 'block' : 'none';
+        eraserOptionsEl.style.display = 'none';
+        curvatureDisplay.style.display = 'none';
+        canvas.style.cursor = 'crosshair';
+        if (pendingTemplate) updateArmsForType(pendingTemplate);
+        refreshButtonStates();
+        render();
+    }
+    function onTemplateSelect(el) {
+        const cat = el.id.replace('tmpl-', '');
+        if (activeTemplateCat !== cat) return;
+        pendingTemplate = el.value || null;
+        templateSettingsEl.style.display = pendingTemplate ? 'block' : 'none';
+        templateHint.style.display = pendingTemplate ? 'block' : 'none';
+        if (pendingTemplate) updateArmsForType(pendingTemplate);
+        render();
+    }
+    function updateTemplatePreview() { render(); }
+    function getTemplateConfig() {
+        return { size: parseFloat(document.getElementById('tmpl-size').value) || 1, lanes: parseInt(document.getElementById('tmpl-lanes').value) || 2, arms: parseInt(document.getElementById('tmpl-arms').value) || 4, rotation: (parseFloat(document.getElementById('tmpl-rotation').value) || 0) * Math.PI / 180 };
+    }
+
+    function spawnTemplate(type, wx, wy, config, isPreview = false, auto = null) {
+        if (!auto) auto = { rot: 0, z: getSettings().z, anchor: null };
+        const settings = getSettings(); settings.lanes = config.lanes;
+        const r = 20 * config.size, L = 40 * config.size, HW = L * 0.5;
+        const effRot = config.rotation + auto.rot;
+        const baseZ = auto.anchor ? auto.anchor.z : (auto.z != null ? auto.z : settings.z);
+        const gid = isPreview ? null : nextGroupId++;
+        let anchorUsed = false;
+        const createNode = (x, y, zOff = 0) => {
+            const rx = x * Math.cos(effRot) - y * Math.sin(effRot), ry = x * Math.sin(effRot) + y * Math.cos(effRot);
+            if (auto.anchor && !anchorUsed) { anchorUsed = true; return auto.anchor; }
+            if (isPreview) return { x: wx + rx, y: wy + ry, z: baseZ + zOff, isPreview: true };
+            const node = { id: nextId++, x: wx + rx, y: wy + ry, z: baseZ + zOff, grp: gid, lx: rx, ly: ry }; nodes.push(node); return node;
+        };
+        const createEdge = (n1, n2, s = settings, curve = 0) => {
+            const totalWidth = (s.laneWidth * s.lanes) + (s.shoulder * 2);
+            if (isPreview) return { from: n1, to: n2, width: totalWidth, type: s.type, curvature: curve };
+            const edge = { id: nextId++, from: n1.id, to: n2.id, type: s.type, surface: s.surface, width: totalWidth, lanes: s.lanes, laneWidth: s.laneWidth, shoulder: s.shoulder, curvature: curve, grp: gid }; edges.push(edge); return edge;
+        };
+        let previewNodes = [], previewEdges = [];
+        const nd = (p) => { const n = Array.isArray(p) ? createNode(p[0], p[1], p[2] || 0) : p; if (isPreview) previewNodes.push(n); return n; };
+        const link = (a, b, s = settings, curve = 0) => { const e = createEdge(a, b, s, curve); if (isPreview) previewEdges.push(e); return e; };
+        const chain = (pts, s = settings, curve = 0) => { const ns = pts.map(nd); for (let i = 0; i < ns.length - 1; i++) link(ns[i], ns[i + 1], s, curve); return ns; };
+
+        if (type === 'square-intersection') {
+            const center = createNode(0, 0); const dist = 40 * config.size;
+            const n2 = createNode(0, -dist), n3 = createNode(dist, 0), n4 = createNode(0, dist), n5 = createNode(-dist, 0);
+            if (isPreview) { previewNodes.push(center,n2,n3,n4,n5); previewEdges.push(createEdge(center,n2),createEdge(center,n3),createEdge(center,n4),createEdge(center,n5)); }
+            else { createEdge(center,n2); createEdge(center,n3); createEdge(center,n4); createEdge(center,n5); }
+        }
+        else if (type === 'roundabout' || type === 'mini-roundabout') {
+            const isMini = type === 'mini-roundabout';
+            const ringLanes = config.lanes;
+            const ringS = { ...settings, lanes: ringLanes };
+            const ringW = (ringS.laneWidth * ringLanes) + (ringS.shoulder * 2);
+            const baseR = isMini ? r / 2 : r;
+            const ringR = Math.max(baseR, ringW / 2 + 8);
+            const ringNodes = []; const segments = 48;
+            for (let i = 0; i < segments; i++) { const ang = (i*360/segments)*Math.PI/180; ringNodes.push(createNode(Math.cos(ang)*ringR, Math.sin(ang)*ringR)); }
+            ringNodes.forEach(n => { n._ring = true; });
+            for (let i = 0; i < segments; i++) {
+                const e = createEdge(ringNodes[i], ringNodes[(i+1)%segments], ringS);
+                e.ring = { cx: wx, cy: wy, r: ringR };
+                if (isPreview) previewEdges.push(e);
+            }
+            const appDist = ringR + 40 * config.size; const appS = {...settings, lanes: config.lanes};
+            for (let i = 0; i < config.arms; i++) {
+                if (auto.anchor && i === 0) continue;
+                const ang = (i*360/config.arms)*Math.PI/180; const ringIdx = Math.floor((i*segments)/config.arms);
+                const appNode = createNode(Math.cos(ang)*appDist, Math.sin(ang)*appDist);
+                if (isPreview) { previewNodes.push(appNode); previewEdges.push(createEdge(appNode, ringNodes[ringIdx], appS)); }
+                else createEdge(appNode, ringNodes[ringIdx], appS);
+            }
+            if (isPreview) previewNodes.push(...ringNodes);
+        }
+        else if (type === 'y-junction') { const center = createNode(0, 0); const dist = 40 * config.size; for (let i = 0; i < config.arms; i++) { const ang = (i*360/config.arms - 90)*Math.PI/180; const endNode = createNode(Math.cos(ang)*dist, Math.sin(ang)*dist); if (isPreview) { previewNodes.push(center,endNode); previewEdges.push(createEdge(center,endNode)); } else createEdge(center,endNode); } }
+        else if (type === 't-junction') { const center = createNode(0, 0); const dist = 40 * config.size; const n1 = createNode(0,-dist), n2 = createNode(-dist,0), n3 = createNode(dist,0); if (isPreview) { previewNodes.push(center,n1,n2,n3); previewEdges.push(createEdge(center,n1),createEdge(center,n2),createEdge(center,n3)); } else { createEdge(center,n1); createEdge(center,n2); createEdge(center,n3); } }
+        else if (type === 'layby') { const n1 = createNode(-40*config.size,0); const center = createNode(0,0); const n2 = createNode(40*config.size,0); const sideEnd = createNode(0, 25*config.size); if (isPreview) { previewNodes.push(n1,center,n2,sideEnd); previewEdges.push(createEdge(n1,center),createEdge(center,n2),createEdge(center,sideEnd,{...settings,lanes:1})); } else { createEdge(n1,center); createEdge(center,n2); createEdge(center,sideEnd,{...settings,lanes:1}); } }
+        else if (type === 'bottleneck') { const n1 = createNode(-40*config.size,0); const center = createNode(0,0); const n2 = createNode(40*config.size,0); const halfLanes = Math.max(1, Math.round(config.lanes / 2)); if (isPreview) { previewNodes.push(n1,center,n2); previewEdges.push(createEdge(n1,center,{...settings,lanes:config.lanes}),createEdge(center,n2,{...settings,lanes:halfLanes})); } else { createEdge(n1,center,{...settings,lanes:config.lanes}); createEdge(center,n2,{...settings,lanes:halfLanes}); } }
+        else if (type === 'straight-ramp') { const n1 = createNode(-40*config.size,0,0); const n2 = createNode(40*config.size,0,5*config.size); if (isPreview) { previewNodes.push(n1,n2); previewEdges.push(createEdge(n1,n2)); } else createEdge(n1,n2); }
+        else if (type === 'curved-ramp') { const segments = 8; const rampNodes = []; for (let i = 0; i <= segments; i++) { const t=i/segments, ang=t*Math.PI/2; rampNodes.push(createNode(Math.cos(ang)*40*config.size, Math.sin(ang)*40*config.size, t*5*config.size)); } for (let i = 0; i < segments; i++) { if (isPreview) previewEdges.push(createEdge(rampNodes[i],rampNodes[i+1])); else createEdge(rampNodes[i],rampNodes[i+1]); } if (isPreview) previewNodes.push(...rampNodes); }
+        else if (type === 'exit-ramp') { const mainStart = createNode(-40*config.size,0,0); const exitSplit = createNode(0,0,0); const mainEnd = createNode(40*config.size,0,0); const e1 = createNode(20*config.size,-30*config.size,3*config.size); const e2 = createNode(20*config.size,30*config.size,3*config.size); if (isPreview) { previewNodes.push(mainStart,exitSplit,mainEnd,e1,e2); previewEdges.push(createEdge(mainStart,exitSplit),createEdge(exitSplit,mainEnd),createEdge(exitSplit,e1),createEdge(exitSplit,e2)); } else { createEdge(mainStart,exitSplit); createEdge(exitSplit,mainEnd); createEdge(exitSplit,e1); createEdge(exitSplit,e2); } }
+        else if (type === 'cloverleaf-ramp') { const segments = 12; const rampNodes = []; for (let i = 0; i <= segments; i++) { const t=i/segments, ang=t*Math.PI; rampNodes.push(createNode(Math.cos(ang)*30*config.size+20*config.size, Math.sin(ang)*30*config.size, t*5*config.size)); } for (let i = 0; i < segments; i++) { if (isPreview) previewEdges.push(createEdge(rampNodes[i],rampNodes[i+1])); else createEdge(rampNodes[i],rampNodes[i+1]); } if (isPreview) previewNodes.push(...rampNodes); }
+        else if (type === 'diamond') { const center = nd([0,0]); const ml = chain([[-L,0],[-HW,0],center,[HW,0],[L,0]]); const cl = chain([[0,-L],[0,-HW],center,[0,HW],[0,L]]); chain([ml[1], cl[1]], settings, 0.9); chain([ml[3], cl[1]], settings, -0.9); chain([ml[1], cl[3]], settings, -0.9); chain([ml[3], cl[3]], settings, 0.9); }
+        else if (type === 'loop') { const ml = chain([[-L,0], nd([0,0]), [L,0]]); const cx = HW, cy = -HW, rad = HW; const pts = []; for (let i = 0; i <= 10; i++) { const a = Math.PI + (i/10)*(1.5*Math.PI); pts.push([cx+Math.cos(a)*rad, cy+Math.sin(a)*rad]); } chain([ml[0], ...pts, ml[2]]); }
+        else if (type === 'outer-connection') { const ml = chain([[-L,0], nd([0,0]), [L,0]]); const cr = chain([[0,-L],[0,L]]); chain([ml[0], [0,0,5], cr[0]], settings, 0.0); }
+        else if (type === 'directional') { const ml = chain([[-L,0], nd([0,0]), [L,0]]); const cr = chain([[0,-L],[0,L]]); chain([ml[0], [0,0,5], cr[1]], settings, 0.0); chain([ml[2], [0,0,5], cr[0]], settings, 0.0); }
+        else if (type === 'semi-directional') { const ml = chain([[-L,0], nd([0,0]), [L,0]]); const cr = chain([[0,-L],[0,L]]); chain([ml[0], [0,0,5], cr[1]], settings, 0.0); chain([ml[2], [HW*0.5,-HW*0.5,2], cr[0]], settings, 0.8); }
+        else if (type === 'single-lane-taper') { const A = nd([-L,0]), B = nd([0,0]), C = nd([L, HW*0.3]); link(A, B, {...settings, lanes: config.lanes}); link(B, C, {...settings, lanes: 1}, 0.4); }
+        else if (type === 'single-lane-parallel') { const A = nd([-L,-3]), B = nd([-L,3]), M = nd([0,0]), C = nd([L,0]); link(A, M, {...settings, lanes: 1}); link(B, M, {...settings, lanes: 1}); link(M, C, {...settings, lanes: config.lanes}); }
+        else if (type === 'two-lane-optional') { const A = nd([-L,0]), B = nd([0,0]), C = nd([L,0]), O = nd([0, HW*0.6]); link(A, B, {...settings, lanes: config.lanes}); link(B, C, {...settings, lanes: config.lanes}); link(B, O, {...settings, lanes: 1}, 0.3); }
+        else if (type === 'two-lane-lane-drop') { const A = nd([-L,0]), B = nd([0,0]), C = nd([L,0]), D = nd([L*0.8, HW*0.7]); link(A, B, {...settings, lanes: config.lanes}); link(B, C, {...settings, lanes: config.lanes}); link(B, D, {...settings, lanes: 1}, 0.5); }
+        else if (type === 'bridge-exit') { const A = nd([-L,0,5]), B = nd([0,0,5]), C = nd([L,0,5]), G = nd([0,HW,0]); const bs = {...settings, type: 'bridge'}; link(A, B, bs); link(B, C, bs); link(B, G, {...settings, type: 'road'}, 0.3); }
+        else if (type === 'bridge-merge') { const G = nd([0,HW,0]), A = nd([-L,0,5]), B = nd([0,0,5]), C = nd([L,0,5]); const bs = {...settings, type: 'bridge'}; link(G, B, {...settings, type: 'road'}, 0.3); link(A, B, bs); link(B, C, bs); }
+        else if (type === 'rail-crossing') { const rs = {...settings, type: 'rail', lanes: 1}; chain([[-L,0],[0,0],[L,0]], rs); chain([[0,-L],[0,L]], rs); }
+        else if (type === 'rail-flying') { const rs = {...settings, type: 'rail', lanes: 1}; chain([[-L,0,0],[0,0,0],[L,0,0]], rs); chain([[0,-L,5],[0,0,5],[0,L,5]], rs); }
+        else if (type === 'metro-station') { const ms = {...settings, type: 'metro', lanes: 1}; chain([[-L,0,-12],[0,0,-12],[L,0,-12]], ms); const s1 = nd([-HW*0.4,4,-12]), s2 = nd([HW*0.4,4,-12]), s3 = nd([-HW*0.4,-4,-12]), s4 = nd([HW*0.4,-4,-12]); link(s1, s2, ms); link(s3, s4, ms); }
+        else if (type === 'tunnel-portal') { chain([[-L,0,0],[0,0,-6],[L,0,-12]], {...settings, type: 'tunnel', lanes: config.lanes}); }
+
+        if (isPreview) return { nodes: previewNodes, edges: previewEdges };
+        if (auto.anchor && !auto.anchor.isPreview) { auto.anchor.grp = gid; auto.anchor.lx = 0; auto.anchor.ly = 0; }
+        groups.set(gid, { id: gid, type, wx, wy, size: config.size, rotDeg: effRot * 180 / Math.PI, lanes: config.lanes, laneWidth: settings.laneWidth, shoulder: settings.shoulder, anchorId: (auto.anchor && !auto.anchor.isPreview) ? auto.anchor.id : null });
+        render();
+    }
+
+    function confirmChain() {
+        if (chainPoints.length < 2) { cancelChain(); return; }
+        const settings = getSettings(); let prevNode = null;
+        for (let i = 0; i < chainPoints.length; i++) {
+            const p = chainPoints[i]; let node;
+            if (p.fromEdge) {
+                let e = p.snapEdgeId != null ? edges.find(x => x.id === p.snapEdgeId) : null;
+                if (e) node = splitEdgeAt(e, p.snapT);
+                else { const ne = nearestEdgeAt(p.x, p.y, SNAP_THRESHOLD / camera.zoom); node = ne ? splitEdgeAt(ne.edge, ne.t) : (findNearestNode(p.x, p.y, 1) || addNode(p.x, p.y, p.z)); }
+            } else { node = findNearestNode(p.x, p.y, 1) || addNode(p.x, p.y, p.z); }
+            if (prevNode) addEdge(prevNode, node, settings, segmentCurves[i - 1] || 0);
+            prevNode = node;
+        }
+        cancelChain();
+    }
+    function cancelChain() { chainPoints = []; segmentCurves = []; currentSegmentCurve = 0; chainUI.style.display = 'none'; curvatureVal.textContent = "0"; render(); }
+    function simplifyPath(points, tolerance) { if (points.length <= 2) return points; let res = [points[0]], prev = points[0]; for (let i = 1; i < points.length - 1; i++) { if (Math.hypot(points[i].x - prev.x, points[i].y - prev.y) > tolerance) { res.push(points[i]); prev = points[i]; } } res.push(points[points.length - 1]); return res; }
+
+    canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+
+        if (currentTool === 'select') {
+            const world = screenToWorld(e.offsetX, e.offsetY);
+            const thr = 15 / camera.zoom;
+
+            const n = findNearestNode(world.x, world.y, thr);
+            if (isGroupNode(n)) {
+                closeEdgeCtx();
+                openCtxMenu(n.grp, e.clientX, e.clientY);
+                return;
+            }
+
+            const ed = findNearestEdge(world.x, world.y, thr);
+
+            if (ed && (ed.type === 'rail' || ed.type === 'metro')) {
+                closeCtxMenu();
+                openEdgeCtx(ed.id, e.clientX, e.clientY);
+                return;
+            }
+
+            if (ed && isGroupEdge(ed)) {
+                closeEdgeCtx();
+                openCtxMenu(ed.grp, e.clientX, e.clientY);
+                return;
+            }
+
+            closeCtxMenu();
+            closeEdgeCtx();
+            return;
+        }
+
+        closeCtxMenu();
+        closeEdgeCtx();
+
+        if (currentTool === 'chain' || currentTool === 'ruler') confirmChain();
+        else if (currentTool === 'template') setTool('chain');
+    });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Shift') isShiftDown = true; });
+    window.addEventListener('keyup', (e) => { if (e.key === 'Shift') isShiftDown = false; });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeCtxMenu(); closeEdgeCtx(); }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && currentTool === 'select') {
+            if (selKind === 'group') selDelete();
+            else if (selKind === 'nodes' && selNodes.size) selDeleteNodes();
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        const world = screenToWorld(e.offsetX, e.offsetY);
+        if (e.button === 1) { closeCtxMenu(); closeEdgeCtx(); isPanning = true; lastMouse = { x: e.clientX, y: e.clientY }; return; }
+        if (e.button === 2) return;
+        if (e.shiftKey && currentTool !== 'ruler' && currentTool !== 'select') { closeCtxMenu(); closeEdgeCtx(); isPanning = true; lastMouse = { x: e.clientX, y: e.clientY }; return; }
+        if (e.shiftKey && currentTool === 'select') { closeCtxMenu(); closeEdgeCtx(); panPending = { sx: e.clientX, sy: e.clientY, wx: world.x, wy: world.y }; downPos = { x: world.x, y: world.y }; marquee = null; return; }
+        closeCtxMenu();
+        closeEdgeCtx();
+        let placeX = world.x, placeY = world.y;
+        if (snapPoint) { placeX = snapPoint.x; placeY = snapPoint.y; }
+
+        if (currentTool === 'template' && pendingTemplate) {
+            try { const config = getTemplateConfig(); const auto = computeAuto(pendingTemplate, false); spawnTemplate(pendingTemplate, placeX, placeY, config, false, auto); } catch (err) { console.error('Template placement failed:', err); }
+            return;
+        }
+        if (currentTool === 'eraser') {
+            const mode = eraserModeEl ? eraserModeEl.value : 'node';
+            if (mode === 'area') { deleteArea(world.x, world.y, AREA_ERASE_RADIUS); }
+            else if (hoveredEraserTarget) { if (mode === 'node') deleteTarget(hoveredEraserTarget); else if (mode === 'segment') deleteEdgeOnly(hoveredEraserTarget); else if (mode === 'cluster') deleteCluster(hoveredEraserTarget); }
+            return;
+        }
+        if (currentTool === 'select') {
+            downPos = { x: world.x, y: world.y };
+            geometryDragged = false; lastGroupSnap = null;
+            const effMode = e.altKey ? GRAB_CYCLE[grabMode] : grabMode;
+            const n = findNearestNode(placeX, placeY, 15 / camera.zoom);
+            if (n) {
+                if (effMode === 'group' && isGroupNode(n)) { selectGroup(n.grp); dragAnchorNode = n.id; }
+                else if (effMode === 'network') { selectNetwork(n); dragAnchorNode = null; }
+                else {
+                    if (e.shiftKey) toggleNodeInSel(n);
+                    else if (selNodes.has(n.id)) { marquee = null; }
+                    else selectNode(n);
+                    dragAnchorNode = null;
+                }
+            } else {
+                const ed = findNearestEdge(placeX, placeY, 15 / camera.zoom);
+                if (ed && isGroupEdge(ed) && effMode === 'group') { selectGroup(ed.grp); dragAnchorNode = nearestGroupNode(ed.grp, world.x, world.y); }
+                else if (ed && effMode === 'network') { const a = nodes.find(n2 => n2.id === ed.from); if (a) selectNetwork(a); else clearSelection(); dragAnchorNode = null; }
+                else if (effMode === 'node' || effMode === 'network') { marquee = { x0: world.x, y0: world.y, x1: world.x, y1: world.y }; marqueeActive = false; }
+                else clearSelection();
+            }
+            isDragging = (selKind !== null) || !!marquee;
+            dragPrev = { x: world.x, y: world.y };
+            render(); return;
+        }
+        if (currentTool === 'chain' || currentTool === 'ruler') {
+            const fromEdge = !!(snapPoint && snapPoint.type === 'edge');
+            const p = { x: placeX, y: placeY, z: parseFloat(document.getElementById('elevation-z').value) || 0, fromEdge, snapEdgeId: fromEdge ? snapPoint.edge.id : null, snapT: fromEdge ? snapPoint.t : 0 };
+            if (chainPoints.length > 0) segmentCurves.push(currentTool === 'ruler' ? 0 : currentSegmentCurve);
+            chainPoints.push(p); chainUI.style.display = 'flex'; render();
+        }
+        else if (currentTool === 'freehand') { isDragging = true; previewChain = [{ x: placeX, y: placeY }]; }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        mouseWorld = screenToWorld(e.offsetX, e.offsetY);
+        document.getElementById('coord-x').textContent = mouseWorld.x.toFixed(1);
+        document.getElementById('coord-y').textContent = mouseWorld.y.toFixed(1);
+        updateSnapIndicator(mouseWorld.x, mouseWorld.y);
+        if (panPending) {
+            const moved = Math.hypot(e.clientX - panPending.sx, e.clientY - panPending.sy);
+            if (moved > 4) {
+                isPanning = true;
+                lastMouse = { x: panPending.sx, y: panPending.sy };
+                panPending = null;
+                camera.x -= (e.clientX - lastMouse.x) / camera.zoom;
+                camera.y -= (e.clientY - lastMouse.y) / camera.zoom;
+                lastMouse = { x: e.clientX, y: e.clientY };
+                render();
+            }
+            return;
+        }
+        if (currentTool === 'select' && !isDragging) {
+            const thr = 15 / camera.zoom; let hg = null;
+            const hn = findNearestNode(mouseWorld.x, mouseWorld.y, thr);
+            if (isGroupNode(hn)) hg = hn.grp;
+            else { const he = findNearestEdge(mouseWorld.x, mouseWorld.y, thr); if (isGroupEdge(he)) hg = he.grp; }
+            hoveredGroup = hg;
+            canvas.style.cursor = grabMode === 'group' ? (hg ? 'grab' : 'default') : 'crosshair';
+        }
+        if (isPanning) { camera.x -= (e.clientX - lastMouse.x) / camera.zoom; camera.y -= (e.clientY - lastMouse.y) / camera.zoom; lastMouse = { x: e.clientX, y: e.clientY }; render(); return; }
+        if (currentTool === 'select' && isDragging) {
+            if (marquee) {
+                if (downPos && Math.hypot(mouseWorld.x - downPos.x, mouseWorld.y - downPos.y) > 4 / camera.zoom) marqueeActive = true;
+                if (marqueeActive) { marquee.x1 = mouseWorld.x; marquee.y1 = mouseWorld.y; }
+                render(); return;
+            }
+            if (downPos && Math.hypot(mouseWorld.x - downPos.x, mouseWorld.y - downPos.y) > 4 / camera.zoom) geometryDragged = true;
+            if (selKind === 'group') {
+                const g = groups.get(selGroup); if (g) {
+                    const snap = foreignSnap(mouseWorld.x, mouseWorld.y, selGroup);
+                    const tx = snap ? snap.x : mouseWorld.x, ty = snap ? snap.y : mouseWorld.y;
+                    snapPoint = snap ? { x: snap.x, y: snap.y, type: 'edge' } : null;
+                    lastGroupSnap = snap ? { x: snap.x, y: snap.y } : null;
+                    if (snap && snap.phi != null && document.getElementById('auto-align').checked) {
+                        const delta = snap.phi - (FACE_LOCAL[g.type] || 0) * Math.PI / 180 - g.rotDeg * Math.PI / 180;
+                        if (Math.abs(delta) > 1e-4) applyGroupRotate(selGroup, delta);
+                    }
+                    let px = g.wx, py = g.wy;
+                    if (dragAnchorNode != null) { const gn = nodes.find(n => n.id === dragAnchorNode); if (gn) { px = gn.x; py = gn.y; } }
+                    translateGroup(selGroup, tx - px, ty - py);
+                    canvas.style.cursor = 'grabbing';
+                }
+            }
+            else if (selNodes.size) {
+                const dx = mouseWorld.x - dragPrev.x, dy = mouseWorld.y - dragPrev.y;
+                if (dx || dy) {
+                    if (selNodes.size === 1) {
+                        const id = [...selNodes][0]; const self = nodes.find(n => n.id === id);
+                        const thr = SNAP_THRESHOLD / camera.zoom; let tgt = null, bd = thr;
+                        for (const n of nodes) { if (n.id === id) continue; const dd = Math.hypot(n.x - mouseWorld.x, n.y - mouseWorld.y); if (dd < bd) { bd = dd; tgt = n; } }
+                        if (tgt) { self.x = tgt.x; self.y = tgt.y; snapPoint = { x: tgt.x, y: tgt.y, type: 'node', target: tgt }; }
+                        else { self.x = mouseWorld.x; self.y = mouseWorld.y; snapPoint = null; }
+                    } else {
+                        for (const nid of selNodes) { const n = nodes.find(x => x.id === nid); if (n) { n.x += dx; n.y += dy; } }
+                        snapPoint = null;
+                    }
+                    dragPrev = { x: mouseWorld.x, y: mouseWorld.y };
+                }
+                canvas.style.cursor = 'move';
+            }
+            render(); return;
+        }
+        else if (currentTool === 'freehand' && isDragging) { previewChain.push({ x: mouseWorld.x, y: mouseWorld.y }); render(); }
+        else render();
+    });
+    canvas.addEventListener('mouseup', () => {
+        if (panPending) {
+            const n = findNearestNode(panPending.wx, panPending.wy, 15 / camera.zoom);
+            if (n) {
+                if (selKind === 'group') { selKind = 'nodes'; selGroup = null; selNodes = new Set([n.id]); selNode = n; syncSelPanel(); }
+                else toggleNodeInSel(n);
+            }
+            panPending = null;
+            render(); return;
+        }
+        if (isPanning) { isPanning = false; return; }
+        if (currentTool === 'freehand' && isDragging) {
+            isDragging = false;
+            if (previewChain.length > 2) { const simplified = simplifyPath(previewChain, 5.0); const settings = getSettings(); let prevNode = addNode(simplified[0].x, simplified[0].y, settings.z); for (let i = 1; i < simplified.length; i++) { const currNode = addNode(simplified[i].x, simplified[i].y, settings.z); addEdge(prevNode, currNode, settings, 0); prevNode = currNode; } }
+            previewChain = []; render();
+        }
+        if (currentTool === 'select') {
+            if (marquee) {
+                if (marqueeActive) {
+                    const x0 = Math.min(marquee.x0, marquee.x1), x1 = Math.max(marquee.x0, marquee.x1);
+                    const y0 = Math.min(marquee.y0, marquee.y1), y1 = Math.max(marquee.y0, marquee.y1);
+                    const inside = nodes.filter(n => n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1).map(n => n.id);
+                    selNodes = new Set(inside);
+                    if (selNodes.size) { selKind = 'nodes'; selNode = nodes.find(n => n.id === inside[0]); selGroup = null; }
+                    else { selKind = null; selNode = null; selGroup = null; }
+                    syncSelPanel();
+                } else {
+                    clearSelection();
+                }
+                marquee = null; marqueeActive = false;
+            }
+            if (geometryDragged) weldAfterMove();
+            isDragging = false; dragPrev = null; dragAnchorNode = null; lastGroupSnap = null; geometryDragged = false; snapPoint = null;
+            canvas.style.cursor = grabMode === 'group' ? (hoveredGroup ? 'grab' : 'default') : 'crosshair';
+            render();
+        }
+    });
+    canvas.addEventListener('mouseleave', () => { isPanning = false; isDragging = false; dragPrev = null; dragAnchorNode = null; hoveredGroup = null; marquee = null; marqueeActive = false; panPending = null; geometryDragged = false; lastGroupSnap = null; closeEdgeCtx(); });
+
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault(); closeCtxMenu(); closeEdgeCtx();
+        if ((currentTool === 'chain' || currentTool === 'ruler') && chainPoints.length > 0) { if (currentTool === 'chain') { if (e.deltaY < 0) currentSegmentCurve = Math.min(1, currentSegmentCurve + 0.1); else currentSegmentCurve = Math.max(-1, currentSegmentCurve - 0.1); curvatureVal.textContent = Math.round(currentSegmentCurve * 100); } render(); return; }
+        camera.zoom *= e.deltaY < 0 ? 1.1 : 0.9; camera.zoom = Math.max(0.1, Math.min(5, camera.zoom)); render();
+    }, { passive: false });
+
+    function render() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.save(); ctx.translate(width / 2, height / 2); ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x, -camera.y);
+        drawGrid(); drawEdges(); drawNodes(); drawSelectionHighlight();
+        if (marquee && marqueeActive) {
+            const x = Math.min(marquee.x0, marquee.x1), y = Math.min(marquee.y0, marquee.y1);
+            const w = Math.abs(marquee.x1 - marquee.x0), h = Math.abs(marquee.y1 - marquee.y0);
+            ctx.fillStyle = 'rgba(0,200,255,0.10)'; ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = 'rgba(0,210,255,0.9)'; ctx.lineWidth = 1 / camera.zoom; ctx.setLineDash([5 / camera.zoom, 4 / camera.zoom]); ctx.strokeRect(x, y, w, h); ctx.setLineDash([]);
+        }
+        drawSnapTicks(); drawSnapIndicator();
+        if (pendingTemplate) {
+            try { const config = getTemplateConfig(); const auto = computeAuto(pendingTemplate, true); const tx = snapPoint ? snapPoint.x : mouseWorld.x; const ty = snapPoint ? snapPoint.y : mouseWorld.y; const preview = spawnTemplate(pendingTemplate, tx, ty, config, true, auto); drawPreviewTemplate(preview); } catch (err) { console.error('Template preview failed:', err); }
+        }
+        if ((currentTool === 'chain' || currentTool === 'ruler') && chainPoints.length > 0) drawChainPreview();
+        if (currentTool === 'freehand' && previewChain.length > 0) drawFreehandPreview();
+        if (currentTool === 'eraser') {
+            const mode = eraserModeEl ? eraserModeEl.value : 'node';
+            if (mode === 'area') { ctx.strokeStyle = 'rgba(255,80,80,0.9)'; ctx.lineWidth = 1.5 / camera.zoom; ctx.setLineDash([6 / camera.zoom, 4 / camera.zoom]); ctx.beginPath(); ctx.arc(mouseWorld.x, mouseWorld.y, AREA_ERASE_RADIUS, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
+            else if (hoveredEraserTarget) { ctx.strokeStyle = 'rgba(255,0,0,0.8)'; ctx.lineWidth = 2 / camera.zoom; if (hoveredEraserTarget.from !== undefined) { const n1 = nodes.find(n => n.id === hoveredEraserTarget.from), n2 = nodes.find(n => n.id === hoveredEraserTarget.to); if (n1 && n2) { ctx.beginPath(); ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.stroke(); } } else { ctx.beginPath(); ctx.arc(hoveredEraserTarget.x, hoveredEraserTarget.y, 10 / camera.zoom, 0, Math.PI * 2); ctx.stroke(); } }
+        }
+        ctx.restore();
+    }
+
+    function drawSelectionHighlight() {
+        if (currentTool !== 'select') return;
+        const outline = (gid, color, lw) => {
+            ctx.strokeStyle = color; ctx.lineWidth = lw / camera.zoom; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            for (const e of groupEdges(gid)) { const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to); if (!a || !b) continue; if (e.ring) { ctx.beginPath(); ctx.arc(e.ring.cx, e.ring.cy, e.ring.r + e.width/2 + 2/camera.zoom, 0, Math.PI*2); ctx.stroke(); continue; } const ec = edgeCtrl(e); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(ec.x, ec.y, b.x, b.y); ctx.stroke(); }
+        };
+        if (selKind === 'group') outline(selGroup, '#ffb347', 2);
+        else if (selKind === 'nodes') { ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 2 / camera.zoom; for (const nid of selNodes) { const n = nodes.find(x => x.id === nid); if (!n) continue; ctx.beginPath(); ctx.arc(n.x, n.y, 6 / camera.zoom, 0, Math.PI * 2); ctx.stroke(); } }
+        else if (hoveredGroup != null) outline(hoveredGroup, 'rgba(255,179,71,0.38)', 1.5);
+    }
+
+    function drawSnapTicks() {
+        if (!(currentTool === 'chain' || currentTool === 'ruler' || currentTool === 'template')) return;
+        ctx.fillStyle = 'rgba(0,255,255,0.30)';
+        for (const e of edges) { if (e.ring) continue; const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to); if (!a || !b) continue; const c = edgeCtrl(e); for (const t of [0.25, 0.5, 0.75]) { const p = quadAt(a, c, b, t); ctx.beginPath(); ctx.arc(p.x, p.y, 2.2 / camera.zoom, 0, Math.PI * 2); ctx.fill(); } }
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 1 / camera.zoom; const mpc = 50;
+        const startX = Math.floor((camera.x - width / 2 / camera.zoom) / mpc) * mpc, endX = startX + width / camera.zoom + mpc * 2;
+        const startY = Math.floor((camera.y - height / 2 / camera.zoom) / mpc) * mpc, endY = startY + height / camera.zoom + mpc * 2;
+        ctx.beginPath();
+        for (let x = startX; x < endX; x += mpc) { ctx.moveTo(x, startY); ctx.lineTo(x, endY); }
+        for (let y = startY; y < endY; y += mpc) { ctx.moveTo(startX, y); ctx.lineTo(endX, y); }
+        ctx.stroke();
+    }
+    function sampleQuad(p0, p1, curvature, K, ctrl) {
+        const pts = [];
+        let c = ctrl;
+        if (!c) { const midX = (p0.x + p1.x) / 2, midY = (p0.y + p1.y) / 2, dx = p1.x - p0.x, dy = p1.y - p0.y, len = Math.hypot(dx, dy) || 1; const px = -dy / len, py = dx / len, off = (curvature || 0) * len * 1.2; c = { x: midX + px * off, y: midY + py * off }; }
+        for (let i = 0; i <= K; i++) { const t = i / K, mt = 1 - t; pts.push({ x: mt * mt * p0.x + 2 * mt * t * c.x + t * t * p1.x, y: mt * mt * p0.y + 2 * mt * t * c.y + t * t * p1.y }); }
+        return pts;
+    }
+    function curveNormals(pts) { const n = []; for (let i = 0; i < pts.length; i++) { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; let dx = b.x - a.x, dy = b.y - a.y; const l = Math.hypot(dx, dy) || 1; n.push({ x: -dy / l, y: dx / l }); } return n; }
+    function drawSmoothPath(ctx, points, curvature, ctrl) {
+        if (points.length < 2) return;
+        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+        const A = points[0], B = points[1];
+        let c = ctrl;
+        if (!c) {
+            if (Math.abs(curvature || 0) < 0.01) { ctx.lineTo(B.x, B.y); ctx.stroke(); return; }
+            const midX = (A.x + B.x) / 2, midY = (A.y + B.y) / 2, dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy);
+            if (len === 0) { ctx.lineTo(B.x, B.y); ctx.stroke(); return; }
+            const px = -dy / len, py = dx / len, off = (curvature || 0) * len * 1.2; c = { x: midX + px * off, y: midY + py * off };
+        }
+        ctx.quadraticCurveTo(c.x, c.y, B.x, B.y); ctx.stroke();
+    }
+    function nodeZ(id) { const n = nodes.find(x => x.id === id); return n ? n.z : 0; }
+
+    function strokeQuadPath(a, b, ctrl, dx, dy, w, color, dash) {
+        ctx.beginPath(); ctx.moveTo(a.x + dx, a.y + dy);
+        ctx.quadraticCurveTo(ctrl.x + dx, ctrl.y + dy, b.x + dx, b.y + dy);
+        ctx.setLineDash(dash || []); ctx.lineWidth = w; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    function offsetPolyline(pts, d, closed) {
+        const n = pts.length; if (n < 2) return pts.map(p => ({ x: p.x, y: p.y }));
+        const sd = [], sn = [];
+        for (let i = 0; i < n - 1; i++) { let dx = pts[i+1].x - pts[i].x, dy = pts[i+1].y - pts[i].y; const l = Math.hypot(dx, dy) || 1; sd.push({ x: dx/l, y: dy/l }); sn.push({ x: -dy/l, y: dx/l }); }
+        if (closed) { let dx = pts[0].x - pts[n-1].x, dy = pts[0].y - pts[n-1].y; const l = Math.hypot(dx, dy) || 1; sd.push({ x: dx/l, y: dy/l }); sn.push({ x: -dy/l, y: dx/l }); }
+        const LIMIT = 4, eps = 1e-6, out = [];
+        const addVert = (idx, inN, outN, inDir, outDir) => {
+            const p = pts[idx];
+            const rx = (outN.x - inN.x) * d, ry = (outN.y - inN.y) * d;
+            const det = -(inDir.x * outDir.y - inDir.y * outDir.x);
+            if (Math.abs(det) < eps) { out.push({ x: p.x + inN.x*d, y: p.y + inN.y*d }); out.push({ x: p.x + outN.x*d, y: p.y + outN.y*d }); return; }
+            const t = (-rx * outDir.y + outDir.x * ry) / det;
+            const ix = p.x + inN.x*d + t*inDir.x, iy = p.y + inN.y*d + t*inDir.y;
+            const ml = Math.hypot(ix - p.x, iy - p.y);
+            if (ml > Math.abs(d) * LIMIT) { out.push({ x: p.x + inN.x*d, y: p.y + inN.y*d }); out.push({ x: p.x + outN.x*d, y: p.y + outN.y*d }); }
+            else out.push({ x: ix, y: iy });
+        };
+        if (!closed) {
+            out.push({ x: pts[0].x + sn[0].x*d, y: pts[0].y + sn[0].y*d });
+            for (let i = 1; i < n - 1; i++) addVert(i, sn[i-1], sn[i], sd[i-1], sd[i]);
+            out.push({ x: pts[n-1].x + sn[n-2].x*d, y: pts[n-1].y + sn[n-2].y*d });
+        } else {
+            for (let i = 0; i < n; i++) { const inI = (i - 1 + n) % n; addVert(i, sn[inI], sn[i], sd[inI], sd[i]); }
+            out.push({ x: out[0].x, y: out[0].y });
+        }
+        return out;
+    }
+
+    function markingTrails() {
+        const rail = new Set(['rail','metro']);
+        const cand = edges.filter(e => !rail.has(e.type) && !e.ring);
+        const adj = new Map(); const add = (k,v) => { if(!adj.has(k)) adj.set(k,[]); adj.get(k).push(v); };
+        for (const e of cand) { add(e.from, e); add(e.to, e); }
+        const degC = new Map(); const deg = (id) => { if(degC.has(id)) return degC.get(id); let d=0; for(const e of edges){ if(e.from===id||e.to===id) d++; } degC.set(id,d); return d; };
+        const key = (e) => e.lanes+'|'+e.laneWidth+'|'+e.shoulder;
+        const used = new Set(); const samp = new Map();
+        const sample = (e) => { if(samp.has(e.id)) return samp.get(e.id); const a=nodes.find(n=>n.id===e.from), b=nodes.find(n=>n.id===e.to); const K=Math.max(8,Math.min(160,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/4))); const p=sampleQuad(a,b,e.curvature||0,K,edgeCtrl(e)); samp.set(e.id,p); return p; };
+        const out = [];
+        for (const e of cand) {
+            if (used.has(e.id)) continue; used.add(e.id);
+            const seq = [{ edge: e, rev: false }];
+            let cur = e.to;
+            while (true) { if (deg(cur) !== 2) break; const nx = (adj.get(cur)||[]).find(x => !used.has(x.id) && key(x) === key(e)); if (!nx) break; used.add(nx.id); if (nx.from === cur) { seq.push({ edge: nx, rev: false }); cur = nx.to; } else { seq.push({ edge: nx, rev: true }); cur = nx.from; } }
+            cur = e.from;
+            while (true) { if (deg(cur) !== 2) break; const nx = (adj.get(cur)||[]).find(x => !used.has(x.id) && key(x) === key(e)); if (!nx) break; used.add(nx.id); if (nx.to === cur) { seq.unshift({ edge: nx, rev: false }); cur = nx.from; } else { seq.unshift({ edge: nx, rev: true }); cur = nx.to; } }
+            const f0 = seq[0], l0 = seq[seq.length-1];
+            const startNode = f0.rev ? f0.edge.to : f0.edge.from;
+            const endNode = l0.rev ? l0.edge.from : l0.edge.to;
+            const pts = [];
+            for (const { edge, rev } of seq) { const p = sample(edge); const arr = rev ? p.slice().reverse() : p; if (pts.length) arr.shift(); for (const q of arr) pts.push(q); }
+            const closed = (startNode === endNode) && pts.length > 3;
+            if (closed) pts.pop();
+            if (pts.length >= 2) out.push({ pts, lanes: e.lanes, laneWidth: e.laneWidth, closed });
+        }
+        return out;
+    }
+    function drawMarkingTrail(pts, lanes, laneWidth, closed) {
+        const L = Math.max(1, lanes | 0), lw = (laneWidth > 0) ? laneWidth : 3.5, cwHalf = lw * L / 2;
+        const lineW = Math.max(0.12, lw * 0.05);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        const stroke = (o, dash, color) => {
+            const op = offsetPolyline(pts, o, closed); if (op.length < 2) return;
+            ctx.beginPath(); ctx.moveTo(op[0].x, op[0].y); for (let i = 1; i < op.length; i++) ctx.lineTo(op[i].x, op[i].y);
+            ctx.setLineDash(dash); ctx.strokeStyle = color; ctx.lineWidth = lineW; ctx.stroke(); ctx.setLineDash([]);
+        };
+        stroke(cwHalf, [], '#dcdcdc'); stroke(-cwHalf, [], '#dcdcdc');
+        for (let i = 1; i < L; i++) { const o = -cwHalf + i * lw; const cen = (L % 2 === 0 && i === L / 2); stroke(o, [2, 4], cen ? '#FFD24A' : '#ececec'); }
+    }
+
+    function drawJunctionMasks() {
+        const rail = new Set(['rail','metro']);
+        const adj = new Map(); const add = (k,v) => { if(!adj.has(k)) adj.set(k,[]); adj.get(k).push(v); };
+        for (const e of edges) { if (rail.has(e.type) || e.ring) continue; add(e.from, e); add(e.to, e); }
+        for (const [id, list] of adj) {
+            if (list.length < 3) continue;
+            const n = nodes.find(x => x.id === id); if (!n) continue;
+            let R = 0, isBridge = false, surf = 'asphalt';
+            for (const e of list) { const hw = e.width / 2; if (hw > R) { R = hw; surf = e.surface || 'asphalt'; } if (e.type === 'bridge' || nodeZ(e.from) > 0 || nodeZ(e.to) > 0) isBridge = true; }
+            const col = isBridge ? '#666666' : (surf === 'dirt' ? '#6b4423' : surf === 'gravel' ? '#888877' : surf === 'concrete' ? '#999999' : '#555555');
+            ctx.beginPath(); ctx.arc(n.x, n.y, R, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+        }
+    }
+
+    function drawRings() {
+        const seen = new Set();
+        for (const e of edges) {
+            if (!e.ring) continue;
+            const k = Math.round(e.ring.cx) + '|' + Math.round(e.ring.cy) + '|' + Math.round(e.ring.r);
+            if (seen.has(k)) continue; seen.add(k);
+            const { cx, cy, r } = e.ring, W = e.width, L = Math.max(1, e.lanes | 0), lw = (e.laneWidth > 0) ? e.laneWidth : W / L, cwHalf = lw * L / 2;
+            let col = '#555555'; if (e.surface === 'dirt') col = '#6b4423'; else if (e.surface === 'gravel') col = '#888877'; else if (e.surface === 'concrete') col = '#999999';
+            ctx.lineCap = 'butt'; ctx.lineJoin = 'round';
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = col; ctx.lineWidth = W; ctx.stroke();
+            const lineW = Math.max(0.12, lw * 0.05);
+            const circ = (rad, dash, c) => { if (rad <= 0) return; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.setLineDash(dash); ctx.strokeStyle = c; ctx.lineWidth = lineW; ctx.stroke(); ctx.setLineDash([]); };
+            circ(r + cwHalf, [], '#dcdcdc'); circ(r - cwHalf, [], '#dcdcdc');
+            for (let i = 1; i < L; i++) { const rad = r - cwHalf + i * lw; const cen = (L % 2 === 0 && i === L / 2); circ(rad, [2, 4], cen ? '#FFD24A' : '#ececec'); }
+        }
+    }
+
+    function trailPolylines(subset) {
+        if (!subset.length) return [];
+        const byNode = new Map();
+        const push = (k, v) => { if (!byNode.has(k)) byNode.set(k, []); byNode.get(k).push(v); };
+        for (const e of subset) { push(e.from, e); push(e.to, e); }
+        const used = new Set();
+        const cache = new Map();
+        const sample = (e) => {
+            if (cache.has(e.id)) return cache.get(e.id);
+            const a = nodes.find(n => n.id === e.from), b = nodes.find(n => n.id === e.to);
+            const K = Math.max(8, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 4));
+            const p = sampleQuad(a, b, e.curvature || 0, K, edgeCtrl(e)); cache.set(e.id, p); return p;
+        };
+        const out = [];
+        for (const e of subset) {
+            if (used.has(e.id)) continue;
+            used.add(e.id);
+            const seq = [{ edge: e, rev: false }];
+            let cur = e.to;
+            while (true) {
+                const cand = (byNode.get(cur) || []).find(x => !used.has(x.id));
+                if (!cand) break; used.add(cand.id);
+                if (cand.from === cur) { seq.push({ edge: cand, rev: false }); cur = cand.to; }
+                else { seq.push({ edge: cand, rev: true }); cur = cand.from; }
+            }
+            cur = e.from;
+            while (true) {
+                const cand = (byNode.get(cur) || []).find(x => !used.has(x.id));
+                if (!cand) break; used.add(cand.id);
+                if (cand.to === cur) { seq.unshift({ edge: cand, rev: false }); cur = cand.from; }
+                else { seq.unshift({ edge: cand, rev: true }); cur = cand.to; }
+            }
+            const pts = [];
+            for (const { edge, rev } of seq) { const p = sample(edge); const arr = rev ? p.slice().reverse() : p; if (pts.length) arr.shift(); for (const q of arr) pts.push(q); }
+            if (pts.length >= 2) {
+                const first = seq[0].edge;
+                const elevated = seq.some(s => nodeZ(s.edge.from) > 0 || nodeZ(s.edge.to) > 0);
+                const zmin = seq.reduce((m, s) => Math.min(m, nodeZ(s.edge.from), nodeZ(s.edge.to)), Infinity);
+                out.push({ pts, width: first.width, type: first.type, elevated, zmin });
+            }
+        }
+        return out;
+    }
+
+    function drawRailPortals() {
+        const rail = new Set(['rail', 'metro']);
+        const inc = new Map();
+
+        const add = (nid, deep, w) => {
+            if (!inc.has(nid)) inc.set(nid, { deep: false, shallow: false, maxW: 0 });
+            const rec = inc.get(nid);
+            if (deep) rec.deep = true;
+            else rec.shallow = true;
+            if (w > rec.maxW) rec.maxW = w;
+        };
+
+        for (const e of edges) {
+            if (!rail.has(e.type)) continue;
+            const deep = e.type === 'metro';
+            add(e.from, deep, e.width);
+            add(e.to, deep, e.width);
+        }
+
+        for (const [nid, rec] of inc) {
+            if (!(rec.deep && rec.shallow)) continue;
+
+            const n = nodes.find(x => x.id === nid);
+            if (!n) continue;
+
+            const R = Math.max(4, rec.maxW * 0.62);
+
+            ctx.save();
+
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
+            ctx.fillStyle = '#05080f';
+            ctx.fill();
+
+            ctx.lineWidth = Math.max(0.6, R * 0.18);
+            ctx.strokeStyle = '#67d4e8';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, R * 0.45, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(103,212,232,0.55)';
+            ctx.lineWidth = Math.max(0.3, R * 0.10);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    function drawRailPolyline(info) {
+        const pts = info.pts, nrm = curveNormals(pts);
+        const deep = (info.type === 'metro');
+        const w = info.width;
+        const halfG = w * 0.16, railW = Math.max(0.25, w * 0.05), sleepLen = w * 0.92;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (info.elevated) { ctx.beginPath(); ctx.moveTo(pts[0].x + 4, pts[0].y + 4); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x + 4, pts[i].y + 4); ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = w + 3; ctx.stroke(); }
+        if (deep) { ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y); ctx.strokeStyle = '#05080f'; ctx.lineWidth = w + 2.5; ctx.stroke(); }
+        const ballast = deep ? '#10202e' : '#2b2620';
+        const railCol = deep ? '#67d4e8' : '#c2c2c2';
+        const sleepCol = deep ? '#27455c' : '#4a3a2a';
+        ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y); ctx.strokeStyle = ballast; ctx.lineWidth = w; ctx.stroke();
+        ctx.strokeStyle = railCol; ctx.lineWidth = railW;
+        for (const sgn of [1, -1]) { ctx.beginPath(); for (let i = 0; i < pts.length; i++) { const x = pts[i].x + nrm[i].x * halfG * sgn, y = pts[i].y + nrm[i].y * halfG * sgn; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.stroke(); }
+        ctx.strokeStyle = sleepCol; ctx.lineWidth = Math.max(0.3, w * 0.06);
+        let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
+        const target = Math.max(4, Math.round(total / 8)); const step = Math.max(1, Math.floor(pts.length / target));
+        for (let i = 0; i < pts.length; i += step) { const p = pts[i], n = nrm[i]; ctx.beginPath(); ctx.moveTo(p.x + n.x * sleepLen / 2, p.y + n.y * sleepLen / 2); ctx.lineTo(p.x - n.x * sleepLen / 2, p.y - n.y * sleepLen / 2); ctx.stroke(); }
+    }
+
+    function getZClusters(sign) {
+        const clusters = [], visited = new Set();
+        const zNodes = nodes.filter(n => sign > 0 ? n.z > 0 : n.z < 0);
+        const zEdges = edges.filter(e => { const n1 = nodes.find(n => n.id === e.from), n2 = nodes.find(n => n.id === e.to); return n1 && n2 && (sign > 0 ? (n1.z > 0 && n2.z > 0) : (n1.z < 0 && n2.z < 0)); });
+        for (let node of zNodes) { if (visited.has(node.id)) continue; const cluster = [], queue = [node]; visited.add(node.id);
+            while (queue.length > 0) { const cur = queue.shift(); cluster.push(cur); for (let e of zEdges) { let nb = null; if (e.from === cur.id) nb = nodes.find(n => n.id === e.to); else if (e.to === cur.id) nb = nodes.find(n => n.id === e.from); if (nb && !visited.has(nb.id)) { visited.add(nb.id); queue.push(nb); } } }
+            clusters.push(cluster); }
+        return clusters;
+    }
+    function drawEdges() {
+        const rail = new Set(['rail','metro']);
+        for (let edge of edges) {
+            const fromNode = nodes.find(n => n.id === edge.from), toNode = nodes.find(n => n.id === edge.to); if (!fromNode || !toNode) continue;
+            if (rail.has(edge.type)) continue;
+            if (edge.ring) continue;
+            const isBridge = edge.type === 'bridge' || fromNode.z > 0 || toNode.z > 0; if (isBridge) continue;
+            const isTunnel = edge.type === 'tunnel';
+            const ec = edgeCtrl(edge);
+            ctx.lineWidth = edge.width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            let baseColor = '#555555';
+            if (edge.surface === 'dirt') baseColor = '#6b4423'; else if (edge.surface === 'gravel') baseColor = '#888877'; else if (edge.surface === 'concrete') baseColor = '#999999';
+            if (isTunnel) baseColor = '#3a3a40';
+            ctx.strokeStyle = baseColor;
+            if (edge.surface === 'gravel') ctx.setLineDash([4, 4]); else ctx.setLineDash([]);
+            drawSmoothPath(ctx, [fromNode, toNode], edge.curvature, ec); ctx.setLineDash([]);
+            if (isTunnel) {
+                const K = Math.max(8, Math.ceil(Math.hypot(toNode.x - fromNode.x, toNode.y - fromNode.y) / 5));
+                const pts = sampleQuad(fromNode, toNode, edge.curvature, K, ec); const nrm = curveNormals(pts); const off = edge.width / 2;
+                ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(190,190,200,0.55)'; ctx.lineWidth = Math.max(0.2, edge.width * 0.04);
+                for (const sgn of [1, -1]) { ctx.beginPath(); for (let i = 0; i < pts.length; i++) { const x = pts[i].x + nrm[i].x * off * sgn, y = pts[i].y + nrm[i].y * off * sgn; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.stroke(); }
+                ctx.setLineDash([]);
+            }
+        }
+        const railSubset = edges.filter(e => rail.has(e.type));
+
+        const railByMode = { rail: [], metro: [] };
+        for (const e of railSubset) {
+            railByMode[e.type === 'metro' ? 'metro' : 'rail'].push(e);
+        }
+
+        for (const list of Object.values(railByMode)) {
+            for (const info of trailPolylines(list)) drawRailPolyline(info);
+        }
+
+        drawRailPortals();
+
+        for (let edge of edges) {
+            if (rail.has(edge.type) || edge.ring) continue;
+            const a = nodes.find(n => n.id === edge.from), b = nodes.find(n => n.id === edge.to); if (!a || !b) continue;
+            if (!(edge.type === 'bridge' || a.z > 0 || b.z > 0)) continue;
+            strokeQuadPath(a, b, edgeCtrl(edge), 4, 4, edge.width + 4, 'rgba(0,0,0,0.5)');
+        }
+        for (let edge of edges) {
+            if (rail.has(edge.type) || edge.ring) continue;
+            const a = nodes.find(n => n.id === edge.from), b = nodes.find(n => n.id === edge.to); if (!a || !b) continue;
+            if (!(edge.type === 'bridge' || a.z > 0 || b.z > 0)) continue;
+            strokeQuadPath(a, b, edgeCtrl(edge), 0, 0, edge.width, '#666666');
+        }
+        for (const tr of markingTrails()) drawMarkingTrail(tr.pts, tr.lanes, tr.laneWidth, tr.closed);
+        drawJunctionMasks();
+        drawRings();
+        const labelCluster = (cluster, color) => { if (!cluster.length) return; let ax = 0, ay = 0, az = 0; for (let n of cluster) { ax += n.x; ay += n.y; az += n.z; } ax /= cluster.length; ay /= cluster.length; az /= cluster.length; ctx.fillStyle = color; ctx.font = `bold ${11 / camera.zoom}px Arial`; ctx.textAlign = 'center'; ctx.fillText(`Z=${az.toFixed(1)}m`, ax, ay - 15 / camera.zoom); };
+        for (const c of getZClusters(1)) labelCluster(c, '#ffffff');
+        for (const c of getZClusters(-1)) labelCluster(c, '#7fd4e8');
+    }
+    function drawNodes() { for (let node of nodes) { if (node.isPreview || node._ring) continue; ctx.beginPath(); ctx.arc(node.x, node.y, 1.5 / camera.zoom, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill(); } }
+    function drawSnapIndicator() { if (!snapPoint) return; ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 1.5 / camera.zoom; ctx.beginPath(); ctx.arc(snapPoint.x, snapPoint.y, 6 / camera.zoom, 0, Math.PI * 2); ctx.stroke(); }
+    function drawChainPreview() {
+        const settings = getSettings(), totalWidth = (settings.laneWidth * settings.lanes) + (settings.shoulder * 2);
+        ctx.lineWidth = totalWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,122,204,0.5)';
+        for (let i = 0; i < chainPoints.length - 1; i++) drawSmoothPath(ctx, [chainPoints[i], chainPoints[i + 1]], segmentCurves[i]);
+        if (chainPoints.length > 0) {
+            const lastPoint = chainPoints[chainPoints.length - 1]; let targetX = snapPoint ? snapPoint.x : mouseWorld.x, targetY = snapPoint ? snapPoint.y : mouseWorld.y;
+            if (currentTool === 'ruler' && isShiftDown) { const dx = targetX - lastPoint.x, dy = targetY - lastPoint.y, angle = Math.atan2(dy, dx), snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4), dist = Math.hypot(dx, dy); targetX = lastPoint.x + Math.cos(snapAngle) * dist; targetY = lastPoint.y + Math.sin(snapAngle) * dist; ctx.beginPath(); ctx.moveTo(lastPoint.x, lastPoint.y); ctx.lineTo(targetX, targetY); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]); }
+            ctx.strokeStyle = 'rgba(0,255,0,0.6)'; drawSmoothPath(ctx, [{ x: lastPoint.x, y: lastPoint.y }, { x: targetX, y: targetY }], currentTool === 'ruler' ? 0 : currentSegmentCurve);
+        }
+        ctx.fillStyle = '#fff'; for (let p of chainPoints) { ctx.beginPath(); ctx.arc(p.x, p.y, 3 / camera.zoom, 0, Math.PI * 2); ctx.fill(); }
+    }
+    function drawFreehandPreview() { const settings = getSettings(), totalWidth = (settings.laneWidth * settings.lanes) + (settings.shoulder * 2); ctx.lineWidth = totalWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(0,255,0,0.5)'; ctx.beginPath(); ctx.moveTo(previewChain[0].x, previewChain[0].y); for (let i = 1; i < previewChain.length; i++) ctx.lineTo(previewChain[i].x, previewChain[i].y); ctx.stroke(); }
+    function drawPreviewTemplate(preview) { ctx.globalAlpha = 0.5; for (let edge of preview.edges) { if (edge.ring) continue; ctx.lineWidth = edge.width; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#007acc'; drawSmoothPath(ctx, [edge.from, edge.to], edge.curvature || 0); } ctx.globalAlpha = 1.0; }
+
+    importFileEl.addEventListener('change', handleImportFile);
+
+    resize(); updateStandards(); refreshButtonStates(); syncWidthFromLanes(); setGrabMode('group');
+    document.getElementById('build-tag').textContent = BUILD;
+    initStorage();
+    render();
+</script>
+</body>
+</html>
